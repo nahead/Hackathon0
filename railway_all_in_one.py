@@ -197,7 +197,32 @@ class CloudVaultSync:
     def clone_or_pull_vault(self):
         """Clone vault repository or pull latest changes"""
         try:
-            if not (self.vault_path / '.git').exists():
+            # Check if vault directory exists
+            if self.vault_path.exists():
+                # Check if it's a valid git repo
+                if (self.vault_path / '.git').exists():
+                    logger.info("🔄 Pulling latest changes...")
+                    subprocess.run(
+                        ['git', 'pull', 'origin', 'main'],
+                        cwd=self.vault_path,
+                        check=True,
+                        capture_output=True
+                    )
+                    logger.info("✅ Vault updated")
+                else:
+                    # Directory exists but not a git repo - remove and clone
+                    logger.info("🗑️ Removing invalid vault directory...")
+                    import shutil
+                    shutil.rmtree(self.vault_path)
+                    logger.info("📥 Cloning vault repository...")
+                    subprocess.run(
+                        ['git', 'clone', self.auth_url, str(self.vault_path)],
+                        check=True,
+                        capture_output=True
+                    )
+                    logger.info("✅ Vault cloned successfully")
+            else:
+                # Directory doesn't exist - clone fresh
                 logger.info("📥 Cloning vault repository...")
                 subprocess.run(
                     ['git', 'clone', self.auth_url, str(self.vault_path)],
@@ -205,20 +230,19 @@ class CloudVaultSync:
                     capture_output=True
                 )
                 logger.info("✅ Vault cloned successfully")
-            else:
-                logger.info("🔄 Pulling latest changes...")
-                subprocess.run(
-                    ['git', 'pull', 'origin', 'main'],
-                    cwd=self.vault_path,
-                    check=True,
-                    capture_output=True
-                )
-                logger.info("✅ Vault updated")
 
             return True
 
         except subprocess.CalledProcessError as e:
             logger.error(f"❌ Git operation failed: {e}")
+            # If clone failed, clean up partial directory
+            if self.vault_path.exists() and not (self.vault_path / '.git').exists():
+                try:
+                    import shutil
+                    shutil.rmtree(self.vault_path)
+                    logger.info("🗑️ Cleaned up failed clone")
+                except:
+                    pass
             return False
 
     def commit_and_push_changes(self):
