@@ -14,8 +14,8 @@ from datetime import datetime
 import json
 from http.server import HTTPServer, BaseHTTPRequestHandler
 
-# Create logs directory
-logs_dir = Path("/app/logs")
+# Create logs directory (use /tmp for cloud platforms)
+logs_dir = Path("/tmp/logs")
 logs_dir.mkdir(parents=True, exist_ok=True)
 
 # Configure logging
