@@ -262,6 +262,20 @@ class CloudVaultSync:
             if not result.stdout.strip():
                 return True  # No changes
 
+            # Configure git identity if not set
+            subprocess.run(
+                ['git', 'config', 'user.email', 'cloud-agent@ai-employee.com'],
+                cwd=self.vault_path,
+                check=True,
+                capture_output=True
+            )
+            subprocess.run(
+                ['git', 'config', 'user.name', 'AI Employee Cloud Agent'],
+                cwd=self.vault_path,
+                check=True,
+                capture_output=True
+            )
+
             # Add all changes
             subprocess.run(['git', 'add', '.'], cwd=self.vault_path, check=True)
 
