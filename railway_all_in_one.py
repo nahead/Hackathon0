@@ -136,6 +136,9 @@ class CloudGmailWatcher:
 
     def create_approval_file(self, subject, sender, content, email_id):
         """Create approval file in vault"""
+        # Ensure Pending_Approval folder exists
+        self.pending_approval_path.mkdir(parents=True, exist_ok=True)
+
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         filename = f"EMAIL_CLOUD_{timestamp}.md"
         filepath = self.pending_approval_path / filename
