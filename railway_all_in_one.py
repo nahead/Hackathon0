@@ -60,8 +60,8 @@ class CloudGmailWatcher:
 
     def __init__(self, vault_path):
         self.vault_path = Path(vault_path)
-        self.needs_action_path = self.vault_path / "Needs_Action"
-        self.needs_action_path.mkdir(parents=True, exist_ok=True)
+        self.pending_approval_path = self.vault_path / "Pending_Approval"
+        self.pending_approval_path.mkdir(parents=True, exist_ok=True)
 
         self.email = os.getenv('SMTP_USER')
         self.password = os.getenv('SMTP_PASS')
@@ -138,7 +138,7 @@ class CloudGmailWatcher:
         """Create approval file in vault"""
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         filename = f"EMAIL_CLOUD_{timestamp}.md"
-        filepath = self.needs_action_path / filename
+        filepath = self.pending_approval_path / filename
 
         approval_content = f"""---
 type: email_response_approval
