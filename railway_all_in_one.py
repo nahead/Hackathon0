@@ -262,31 +262,40 @@ class CloudVaultSync:
             if not result.stdout.strip():
                 return True  # No changes
 
-            # Configure git identity if not set
-            subprocess.run(
-                ['git', 'config', 'user.email', 'cloud-agent@ai-employee.com'],
-                cwd=self.vault_path,
-                check=True,
-                capture_output=True
-            )
-            subprocess.run(
-                ['git', 'config', 'user.name', 'AI Employee Cloud Agent'],
-                cwd=self.vault_path,
-                check=True,
-                capture_output=True
-            )
+            logger.info(f"📝 Changes detected: {len(result.stdout.strip().splitlines())} files")
+
+            # Configure git identity
+            try:
+                subprocess.run(
+                    ['git', 'config', 'user.email', 'cloud-agent@ai-employee.com'],
+                    cwd=self.vault_path,
+                    check=True,
+                    capture_output=True
+                )
+                subprocess.run(
+                    ['git', 'config', 'user.name', 'AI Employee Cloud Agent'],
+                    cwd=self.vault_path,
+                    check=True,
+                    capture_output=True
+                )
+                logger.info("✅ Git identity configured")
+            except subprocess.CalledProcessError as e:
+                logger.error(f"❌ Git config failed: {e.stderr.decode() if e.stderr else e}")
 
             # Add all changes
-            subprocess.run(['git', 'add', '.'], cwd=self.vault_path, check=True)
+            subprocess.run(['git', 'add', '.'], cwd=self.vault_path, check=True, capture_output=True)
+            logger.info("✅ Changes staged")
 
             # Commit
-            commit_msg = f"Cloud agent update - {datetime.now().isoformat()}"
-            subprocess.run(
+            commit_msg = f"Cloud agent update - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+            result = subprocess.run(
                 ['git', 'commit', '-m', commit_msg],
                 cwd=self.vault_path,
                 check=True,
-                capture_output=True
+                capture_output=True,
+                text=True
             )
+            logger.info("✅ Changes committed")
 
             # Push
             subprocess.run(
@@ -300,7 +309,11 @@ class CloudVaultSync:
             return True
 
         except subprocess.CalledProcessError as e:
-            logger.error(f"❌ Git push failed: {e}")
+            error_msg = e.stderr.decode() if e.stderr else str(e)
+            logger.error(f"❌ Git operation failed: {error_msg}")
+            return False
+        except Exception as e:
+            logger.error(f"❌ Unexpected error in git push: {e}")
             return False
 
 class RailwayOrchestrator:
