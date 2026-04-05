@@ -1,0 +1,22 @@
+{
+  "business_reply": {
+    "subject": "Re: {original_subject}",
+    "body": "Dear {recipient_name},\n\nThank you for your message regarding {topic}.\n\n{response_content}\n\nBest regards,\n{sender_name}\n{company_name}\n\n---\nThis email was sent with AI assistance."
+  },
+  "invoice_follow_up": {
+    "subject": "Invoice Follow-up: {invoice_number}",
+    "body": "Dear {client_name},\n\nI hope this email finds you well. I wanted to follow up regarding invoice {invoice_number} dated {invoice_date}.\n\n{follow_up_message}\n\nPlease let me know if you have any questions or if there's anything I can help clarify.\n\nBest regards,\n{sender_name}\n{company_name}\n\nInvoice Details:\n- Invoice Number: {invoice_number}\n- Amount: {amount}\n- Due Date: {due_date}"
+  },
+  "meeting_confirmation": {
+    "subject": "Meeting Confirmation: {meeting_topic}",
+    "body": "Dear {attendee_name},\n\nThis email confirms our meeting scheduled for:\n\n📅 Date: {meeting_date}\n🕐 Time: {meeting_time}\n📍 Location: {meeting_location}\n📋 Topic: {meeting_topic}\n\n{additional_details}\n\nPlease let me know if you need to reschedule or have any questions.\n\nBest regards,\n{sender_name}"
+  },
+  "client_onboarding": {
+    "subject": "Welcome to {company_name} - Next Steps",
+    "body": "Dear {client_name},\n\nWelcome to {company_name}! We're excited to work with you.\n\nHere are your next steps:\n{onboarding_steps}\n\nYour dedicated contact: {contact_person}\nEmail: {contact_email}\nPhone: {contact_phone}\n\nWe look forward to a successful partnership!\n\nBest regards,\n{sender_name}"
+  },
+  "project_update": {
+    "subject": "Project Update: {project_name}",
+    "body": "Dear {client_name},\n\nI wanted to provide you with an update on {project_name}.\n\n📊 Current Status: {status}\n📅 Progress: {progress_percentage}% complete\n🎯 Next Milestone: {next_milestone}\n📆 Expected Completion: {completion_date}\n\n{detailed_update}\n\nPlease let me know if you have any questions or concerns.\n\nBest regards,\n{sender_name}"
+  }
+}

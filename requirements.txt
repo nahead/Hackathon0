@@ -1,0 +1,51 @@
+# AI Employee System - Complete Dependencies (All Tiers)
+# Install with: pip install -r requirements.txt
+
+# Core System Dependencies
+watchdog==3.0.0
+schedule==1.2.0
+python-dotenv==1.0.0
+requests==2.31.0
+psutil==5.9.6
+pathlib2==2.3.7
+
+# Email Integration (Silver/Gold/Platinum Tiers)
+google-auth==2.23.4
+google-auth-oauthlib==1.1.0
+google-auth-httplib2==0.1.1
+google-api-python-client==2.108.0
+
+# Web Automation (Silver/Gold/Platinum Tiers)
+playwright==1.40.0
+selenium==4.15.2
+
+# Odoo Integration (Gold/Platinum Tiers)
+# Note: For Odoo Community integration and MCP servers
+
+# Git Integration (Platinum Tier)
+gitpython==3.1.40
+
+# Security & Encryption (All Tiers)
+cryptography==41.0.7
+
+# Data Processing (Gold/Platinum Tiers)
+pandas==2.1.3
+openpyxl==3.1.2
+
+# Logging & Monitoring (All Tiers)
+colorlog==6.7.0
+
+# Optional: Development Dependencies
+pytest==7.4.3
+black==23.11.0
+flake8==6.1.0
+
+# Optional: Enhanced Features
+pillow==10.1.0
+beautifulsoup4==4.12.2
+lxml==4.9.3
+
+# Note: Additional Node.js dependencies for MCP servers
+# Email MCP Server: cd email-mcp-server && npm install
+# Odoo MCP Server: cd odoo-mcp-server && npm install
+# Social Media MCP Servers: cd social-media-mcp-servers && npm install

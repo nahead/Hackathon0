@@ -1,0 +1,46 @@
+# Render.com Configuration
+# This file tells Render how to deploy your AI Employee
+
+services:
+  # Main Cloud Orchestrator (24/7 monitoring)
+  - type: web
+    name: ai-employee-cloud
+    env: python
+    region: oregon
+    plan: free
+    buildCommand: pip install -r railway-requirements.txt
+    startCommand: python railway_all_in_one.py
+    envVars:
+      - key: AGENT_TYPE
+        value: cloud
+      - key: PYTHON_VERSION
+        value: 3.13.9
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
+        sync: false
+      - key: VAULT_REPO_URL
+        sync: false
+      - key: GIT_USERNAME
+        sync: false
+      - key: GIT_TOKEN
+        sync: false
+    healthCheckPath: /health
+
+  # Background worker for vault sync (optional)
+  - type: worker
+    name: ai-employee-vault-sync
+    env: python
+    region: oregon
+    plan: free
+    buildCommand: pip install -r railway-requirements.txt
+    startCommand: python cloud-deployment/scripts/vault_sync_daemon.py
+    envVars:
+      - key: AGENT_TYPE
+        value: cloud
+      - key: VAULT_REPO_URL
+        sync: false
+      - key: GIT_USERNAME
+        sync: false
+      - key: GIT_TOKEN
+        sync: false

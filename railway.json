@@ -1,0 +1,21 @@
+{
+  "build": {
+    "builder": "NIXPACKS"
+  },
+  "deploy": {
+    "startCommand": "python cloud-deployment/scripts/cloud_orchestrator.py",
+    "healthcheckPath": "/health",
+    "healthcheckTimeout": 100,
+    "restartPolicyType": "ON_FAILURE",
+    "restartPolicyMaxRetries": 3
+  },
+  "environments": {
+    "production": {
+      "variables": {
+        "NODE_ENV": "production",
+        "AGENT_TYPE": "cloud",
+        "RAILWAY_ENVIRONMENT": "production"
+      }
+    }
+  }
+}

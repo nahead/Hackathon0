@@ -1,0 +1,107 @@
+# Environment and Secrets
+.env
+*.env
+credentials.json
+gmail_token.json
+*_token.json
+*_credentials.json
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs
+*.log
+logs/
+AI_Employee_Vault/Logs/*.log
+AI_Employee_Vault/Logs/*.json
+
+# Temporary files
+*.tmp
+*.temp
+temp/
+tmp/
+
+# Session data
+*_session/
+linkedin_session/
+whatsapp_session/
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Backup files
+*.bak
+*.backup
+*~
+
+# Test files
+test_*.py
+*_test.py
+debug_*.py
+*_debug.py
+
+# Personal files
+cv.pdf
+cv/
+personal/
+
+# Vault temporary files
+AI_Employee_Vault/Needs_Action/CONTENT_GEN_*.md
+AI_Employee_Vault/Needs_Action/EMAIL_TEST_*.md
+AI_Employee_Vault/.obsidian/workspace*
+
+# Cloud deployment secrets
+cloud-deployment/.env
+Railway_Vault/
+AI_Employee_Vault/
+AI_Employee_Vault_Sync/
+
+# MCP server node_modules (keep package.json)
+email-mcp-server/node_modules/
+odoo-mcp-server/node_modules/
+social-media-mcp-servers/*/node_modules/
+task-management-mcp-server/node_modules/
+
+# Obsidian workspace
+.obsidian/workspace
+.obsidian/workspace.json

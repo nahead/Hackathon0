@@ -1,0 +1,24 @@
+{
+  "id": "campaign_1771657750103",
+  "name": "Gold Tier Social Media Launch",
+  "type": "product_launch",
+  "duration_days": 14,
+  "budget": 3000,
+  "target_audience": {},
+  "content_strategy": {},
+  "created_at": "2026-02-21T07:09:10.103Z",
+  "start_date": "2026-02-21",
+  "end_date": "2026-03-07",
+  "status": "created",
+  "platforms": [
+    "facebook",
+    "instagram",
+    "twitter"
+  ],
+  "metrics": {
+    "posts_scheduled": 0,
+    "total_reach": 0,
+    "total_engagement": 0,
+    "leads_generated": 0
+  }
+}
