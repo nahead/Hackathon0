@@ -57,7 +57,7 @@ class RailwayOrchestrator:
 
     def __init__(self):
         self.port = int(os.getenv("PORT", 8080))
-        self.app_dir = Path("/app")
+        self.app_dir = Path("/tmp")
         self.vault_path = self.app_dir / "vault-sync"
         self.logs_path = self.app_dir / "logs"
 
