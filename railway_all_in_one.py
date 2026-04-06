@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Railway All-in-One Orchestrator - Platinum Tier
-Real implementation with Gmail monitoring and vault sync
+Real implementation with Gmail monitoring, vault sync, and email sending
 """
 
 import os
@@ -11,9 +11,13 @@ import logging
 import threading
 import imaplib
 import email
+import smtplib
 import subprocess
+import re
 from pathlib import Path
 from datetime import datetime
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 import json
 from http.server import HTTPServer, BaseHTTPRequestHandler
 
@@ -54,6 +58,45 @@ class HealthHandler(BaseHTTPRequestHandler):
     def log_message(self, format, *args):
         # Suppress HTTP server logs
         pass
+
+class CloudEmailSender:
+    """Email sending for cloud deployment"""
+
+    def __init__(self):
+        self.smtp_user = os.getenv('SMTP_USER')
+        self.smtp_pass = os.getenv('SMTP_PASS')
+
+        if not self.smtp_user or not self.smtp_pass:
+            logger.error("SMTP credentials not configured")
+            raise ValueError("SMTP_USER and SMTP_PASS required")
+
+    def send_email(self, to_email, subject, body):
+        """Send email via SMTP"""
+        try:
+            # Create message
+            msg = MIMEMultipart()
+            msg['From'] = self.smtp_user
+            msg['To'] = to_email
+            msg['Subject'] = subject
+
+            # Add body
+            msg.attach(MIMEText(body, 'plain'))
+
+            # Connect to Gmail SMTP
+            server = smtplib.SMTP('smtp.gmail.com', 587)
+            server.starttls()
+            server.login(self.smtp_user, self.smtp_pass)
+
+            # Send email
+            server.send_message(msg)
+            server.quit()
+
+            logger.info(f"✅ Email sent to: {to_email}")
+            return True
+
+        except Exception as e:
+            logger.error(f"❌ Email sending failed: {e}")
+            return False
 
 class CloudGmailWatcher:
     """Gmail monitoring for cloud deployment"""
@@ -196,6 +239,77 @@ class CloudVaultSync:
 
         # Setup authenticated URL
         self.auth_url = self.repo_url.replace('https://', f'https://{self.git_username}:{self.git_token}@')
+
+        # Initialize email sender
+        try:
+            self.email_sender = CloudEmailSender()
+        except Exception as e:
+            logger.warning(f"Email sender not available: {e}")
+            self.email_sender = None
+
+    def process_approved_emails(self):
+        """Process approved emails and send them"""
+        approved_path = self.vault_path / "Approved"
+        done_path = self.vault_path / "Done"
+
+        if not approved_path.exists():
+            return
+
+        # Get all approved email files
+        approved_files = list(approved_path.glob("EMAIL_*.md"))
+
+        if not approved_files:
+            return
+
+        logger.info(f"📧 Found {len(approved_files)} approved emails to send")
+
+        for file_path in approved_files:
+            try:
+                # Read approval file
+                content = file_path.read_text(encoding='utf-8')
+
+                # Extract email details
+                sender_match = re.search(r'sender:\s*(.+)', content)
+                subject_match = re.search(r'subject:\s*(.+)', content)
+                response_match = re.search(r'## Proposed Response:\s*```\s*(.+?)\s*```', content, re.DOTALL)
+
+                if not all([sender_match, subject_match, response_match]):
+                    logger.warning(f"⚠️ Could not parse: {file_path.name}")
+                    continue
+
+                # Extract values
+                sender = sender_match.group(1).strip()
+                original_subject = subject_match.group(1).strip()
+                response_body = response_match.group(1).strip()
+
+                # Extract email address from sender
+                email_match = re.search(r'<(.+?)>', sender)
+                if email_match:
+                    to_email = email_match.group(1)
+                else:
+                    to_email = sender
+
+                # Create reply subject
+                reply_subject = f"Re: {original_subject}" if not original_subject.startswith("Re:") else original_subject
+
+                # Send email
+                if self.email_sender:
+                    logger.info(f"📤 Sending email to: {to_email}")
+                    success = self.email_sender.send_email(to_email, reply_subject, response_body)
+
+                    if success:
+                        # Move to Done folder
+                        done_path.mkdir(parents=True, exist_ok=True)
+                        done_file = done_path / file_path.name
+                        file_path.rename(done_file)
+                        logger.info(f"✅ Email sent and moved to Done: {file_path.name}")
+                    else:
+                        logger.error(f"❌ Failed to send email: {file_path.name}")
+                else:
+                    logger.warning(f"⚠️ Email sender not available, skipping: {file_path.name}")
+
+            except Exception as e:
+                logger.error(f"❌ Error processing {file_path.name}: {e}")
 
     def clone_or_pull_vault(self):
         """Clone vault repository or pull latest changes"""
@@ -351,6 +465,9 @@ class RailwayOrchestrator:
                 try:
                     # Pull changes every 5 minutes
                     vault_sync.clone_or_pull_vault()
+
+                    # Process approved emails (send them)
+                    vault_sync.process_approved_emails()
 
                     # Push any local changes
                     vault_sync.commit_and_push_changes()
