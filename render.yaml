@@ -8,7 +8,7 @@ services:
     env: python
     region: oregon
     plan: free
-    buildCommand: pip install -r railway-requirements.txt
+    buildCommand: pip install -r requirements.txt
     startCommand: python railway_all_in_one.py
     envVars:
       - key: AGENT_TYPE
@@ -33,7 +33,7 @@ services:
     env: python
     region: oregon
     plan: free
-    buildCommand: pip install -r railway-requirements.txt
+    buildCommand: pip install -r requirements.txt
     startCommand: python cloud-deployment/scripts/vault_sync_daemon.py
     envVars:
       - key: AGENT_TYPE
