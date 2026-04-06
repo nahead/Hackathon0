@@ -11,7 +11,7 @@ A fully autonomous AI employee system that manages business operations 24/7 usin
 - Working file system watcher (base_watcher.py, simple_gmail_watcher.py)
 - Claude Code integration with vault
 - Complete folder structure (/Inbox, /Needs_Action, /Done, /Plans, /Logs, /Pending_Approval, /Approved, /Rejected)
-- **4 Agent Skills** implemented in `skills/`
+- **4 Agent Skills** implemented in `.claude/skills/`
 
 ### ✅ Silver Tier - COMPLETE (100%)
 - Multiple watchers (Gmail + LinkedIn automation)
@@ -252,7 +252,7 @@ ANTHROPIC_API_KEY=your-key
 ```
 
 ### Agent Skills
-The system includes 4 Agent Skills in `skills/`:
+The system includes 4 Agent Skills in `.claude/skills/`:
 - email_monitor_skill.md - Email monitoring and processing
 - linkedin_automation_skill.md - LinkedIn content generation and posting
 - plan_creation_skill.md - Automated plan generation
