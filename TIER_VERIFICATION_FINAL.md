@@ -32,7 +32,7 @@
   - `/Done` ✅
 
 - ✅ **All AI functionality as Agent Skills**
-  - Skills folder: `/skills/`
+  - Skills folder: `.claude/skills/`
   - Skills count: 4 documented skills
 
 **Bronze Tier Status:** ✅ COMPLETE
@@ -75,7 +75,7 @@
 
 - ✅ **All AI functionality as Agent Skills**
   - Skills documented: 4 skills
-  - Location: `/skills/`
+  - Location: `.claude/skills/`
 
 **Silver Tier Status:** ✅ COMPLETE
 
@@ -280,10 +280,10 @@
 - `task-management-mcp-server/` - Task management
 
 ### Agent Skills:
-- `skills/email_monitor_skill.md`
-- `skills/linkedin_automation_skill.md`
-- `skills/plan_creation_skill.md`
-- `skills/whatsapp_monitor_skill.md`
+- `.claude/skills/email_monitor_skill.md`
+- `.claude/skills/linkedin_automation_skill.md`
+- `.claude/skills/plan_creation_skill.md`
+- `.claude/skills/whatsapp_monitor_skill.md`
 
 ### Documentation:
 - `README.md` - Complete project overview

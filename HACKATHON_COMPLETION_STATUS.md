@@ -15,7 +15,7 @@
 - ✅ One working Watcher script (simple_gmail_watcher.py)
 - ✅ Claude Code reading/writing to vault
 - ✅ Basic folder structure: /Inbox, /Needs_Action, /Done, /Plans, /Logs, /Pending_Approval, /Approved, /Rejected
-- ✅ All AI functionality as Agent Skills (4 skills in /skills/)
+- ✅ All AI functionality as Agent Skills (4 skills in .claude/skills/)
 
 **Evidence:**
 - Dashboard.md: 60 lines, operational status tracking

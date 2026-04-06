@@ -181,7 +181,7 @@ ls -lh *.py | grep -E "(ceo_briefing|audit_logger|ralph_wiggum)"
 ls -la email-mcp-server/ odoo-mcp-server/ social-media-mcp-servers/
 
 # Check Agent Skills
-ls -la skills/
+ls -la .claude/skills/
 
 # Check vault structure
 ls -la AI_Employee_Vault/
