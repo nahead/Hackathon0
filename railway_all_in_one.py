@@ -543,56 +543,51 @@ class HealthHandler(BaseHTTPRequestHandler):
         pass
 
 class CloudEmailSender:
-    """Email sending for cloud deployment - supports SendGrid API and SMTP"""
+    """Email sending for cloud deployment - supports Resend API and SMTP"""
 
     def __init__(self):
         self.smtp_user = os.getenv('SMTP_USER')
         self.smtp_pass = os.getenv('SMTP_PASS')
-        self.sendgrid_api_key = os.getenv('SENDGRID_API_KEY')
+        self.resend_api_key = os.getenv('RESEND_API_KEY')
 
-        if not self.sendgrid_api_key and not (self.smtp_user and self.smtp_pass):
-            logger.warning("⚠️ No email credentials configured (SendGrid or SMTP)")
+        if not self.resend_api_key and not (self.smtp_user and self.smtp_pass):
+            logger.warning("⚠️ No email credentials configured (Resend or SMTP)")
             self.enabled = False
         else:
             self.enabled = True
-            if self.sendgrid_api_key:
-                logger.info("✅ SendGrid API configured")
+            if self.resend_api_key:
+                logger.info("✅ Resend API configured")
             else:
                 logger.info("✅ SMTP credentials configured")
 
-    def send_email_via_sendgrid(self, to_email, subject, body):
-        """Send email via SendGrid API (HTTP-based, works on all platforms)"""
+    def send_email_via_resend(self, to_email, subject, body):
+        """Send email via Resend API (HTTP-based, works on all platforms)"""
         try:
-            url = "https://api.sendgrid.com/v3/mail/send"
+            url = "https://api.resend.com/emails"
 
             headers = {
-                "Authorization": f"Bearer {self.sendgrid_api_key}",
+                "Authorization": f"Bearer {self.resend_api_key}",
                 "Content-Type": "application/json"
             }
 
             data = {
-                "personalizations": [{
-                    "to": [{"email": to_email}],
-                    "subject": subject
-                }],
-                "from": {"email": self.smtp_user or "ai-employee@example.com"},
-                "content": [{
-                    "type": "text/plain",
-                    "value": body
-                }]
+                "from": self.smtp_user or "AI Employee <onboarding@resend.dev>",
+                "to": [to_email],
+                "subject": subject,
+                "text": body
             }
 
             response = requests.post(url, headers=headers, json=data, timeout=10)
 
-            if response.status_code == 202:
-                logger.info(f"✅ Email sent to: {to_email} (via SendGrid API)")
+            if response.status_code == 200:
+                logger.info(f"✅ Email sent to: {to_email} (via Resend API)")
                 return True
             else:
-                logger.warning(f"⚠️ SendGrid API error: {response.status_code} - {response.text[:100]}")
+                logger.warning(f"⚠️ Resend API error: {response.status_code} - {response.text[:100]}")
                 return False
 
         except Exception as e:
-            logger.warning(f"⚠️ SendGrid API failed: {e}")
+            logger.warning(f"⚠️ Resend API failed: {e}")
             return False
 
     def send_email_via_smtp(self, to_email, subject, body):
@@ -604,7 +599,7 @@ class CloudEmailSender:
         msg['Subject'] = subject
         msg.attach(MIMEText(body, 'plain'))
 
-        # Try port 465 (SSL) first - more likely to work on free cloud platforms
+        # Try port 465 (SSL) first
         try:
             server = smtplib.SMTP_SSL('smtp.gmail.com', 465, timeout=10)
             server.login(self.smtp_user, self.smtp_pass)
@@ -634,17 +629,17 @@ class CloudEmailSender:
             return False
 
     def send_email(self, to_email, subject, body):
-        """Send email - tries SendGrid API first, falls back to SMTP"""
+        """Send email - tries Resend API first, falls back to SMTP"""
         if not self.enabled:
             logger.warning(f"⚠️ Email sender not configured")
             return False
 
-        # Try SendGrid API first (works on all platforms)
-        if self.sendgrid_api_key:
-            success = self.send_email_via_sendgrid(to_email, subject, body)
+        # Try Resend API first (works on all platforms)
+        if self.resend_api_key:
+            success = self.send_email_via_resend(to_email, subject, body)
             if success:
                 return True
-            logger.info("ℹ️ SendGrid failed, trying SMTP...")
+            logger.info("ℹ️ Resend failed, trying SMTP...")
 
         # Fallback to SMTP
         if self.smtp_user and self.smtp_pass:
