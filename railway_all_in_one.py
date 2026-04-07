@@ -14,6 +14,7 @@ import email
 import smtplib
 import subprocess
 import re
+import requests
 from pathlib import Path
 from datetime import datetime
 from email.mime.text import MIMEText
@@ -542,17 +543,59 @@ class HealthHandler(BaseHTTPRequestHandler):
         pass
 
 class CloudEmailSender:
-    """Email sending for cloud deployment"""
+    """Email sending for cloud deployment - supports SendGrid API and SMTP"""
 
     def __init__(self):
         self.smtp_user = os.getenv('SMTP_USER')
         self.smtp_pass = os.getenv('SMTP_PASS')
+        self.sendgrid_api_key = os.getenv('SENDGRID_API_KEY')
 
-        if not self.smtp_user or not self.smtp_pass:
-            logger.error("SMTP credentials not configured")
-            raise ValueError("SMTP_USER and SMTP_PASS required")
+        if not self.sendgrid_api_key and not (self.smtp_user and self.smtp_pass):
+            logger.warning("⚠️ No email credentials configured (SendGrid or SMTP)")
+            self.enabled = False
+        else:
+            self.enabled = True
+            if self.sendgrid_api_key:
+                logger.info("✅ SendGrid API configured")
+            else:
+                logger.info("✅ SMTP credentials configured")
 
-    def send_email(self, to_email, subject, body):
+    def send_email_via_sendgrid(self, to_email, subject, body):
+        """Send email via SendGrid API (HTTP-based, works on all platforms)"""
+        try:
+            url = "https://api.sendgrid.com/v3/mail/send"
+
+            headers = {
+                "Authorization": f"Bearer {self.sendgrid_api_key}",
+                "Content-Type": "application/json"
+            }
+
+            data = {
+                "personalizations": [{
+                    "to": [{"email": to_email}],
+                    "subject": subject
+                }],
+                "from": {"email": self.smtp_user or "ai-employee@example.com"},
+                "content": [{
+                    "type": "text/plain",
+                    "value": body
+                }]
+            }
+
+            response = requests.post(url, headers=headers, json=data, timeout=10)
+
+            if response.status_code == 202:
+                logger.info(f"✅ Email sent to: {to_email} (via SendGrid API)")
+                return True
+            else:
+                logger.warning(f"⚠️ SendGrid API error: {response.status_code} - {response.text[:100]}")
+                return False
+
+        except Exception as e:
+            logger.warning(f"⚠️ SendGrid API failed: {e}")
+            return False
+
+    def send_email_via_smtp(self, to_email, subject, body):
         """Send email via SMTP - tries SSL port 465 first, then TLS port 587"""
         # Create message
         msg = MIMEMultipart()
@@ -567,12 +610,12 @@ class CloudEmailSender:
             server.login(self.smtp_user, self.smtp_pass)
             server.send_message(msg)
             server.quit()
-            logger.info(f"✅ Email sent to: {to_email} (via SSL)")
+            logger.info(f"✅ Email sent to: {to_email} (via SMTP SSL)")
             return True
-        except (OSError, ConnectionError, TimeoutError) as e:
-            logger.info(f"ℹ️ Port 465 blocked, trying port 587...")
-        except Exception as e:
-            logger.info(f"ℹ️ SSL failed, trying TLS: {e}")
+        except (OSError, ConnectionError, TimeoutError):
+            pass
+        except Exception:
+            pass
 
         # Fallback to port 587 (TLS)
         try:
@@ -581,15 +624,34 @@ class CloudEmailSender:
             server.login(self.smtp_user, self.smtp_pass)
             server.send_message(msg)
             server.quit()
-            logger.info(f"✅ Email sent to: {to_email} (via TLS)")
+            logger.info(f"✅ Email sent to: {to_email} (via SMTP TLS)")
             return True
-        except (OSError, ConnectionError, TimeoutError) as e:
-            # Network errors - both ports blocked on free cloud platforms
-            logger.warning(f"⚠️ Email sending skipped (network restricted): {to_email}")
+        except (OSError, ConnectionError, TimeoutError):
+            logger.warning(f"⚠️ SMTP ports blocked (network restricted)")
             return False
         except Exception as e:
-            logger.warning(f"⚠️ Email sending failed: {e}")
+            logger.warning(f"⚠️ SMTP failed: {e}")
             return False
+
+    def send_email(self, to_email, subject, body):
+        """Send email - tries SendGrid API first, falls back to SMTP"""
+        if not self.enabled:
+            logger.warning(f"⚠️ Email sender not configured")
+            return False
+
+        # Try SendGrid API first (works on all platforms)
+        if self.sendgrid_api_key:
+            success = self.send_email_via_sendgrid(to_email, subject, body)
+            if success:
+                return True
+            logger.info("ℹ️ SendGrid failed, trying SMTP...")
+
+        # Fallback to SMTP
+        if self.smtp_user and self.smtp_pass:
+            return self.send_email_via_smtp(to_email, subject, body)
+
+        logger.warning(f"⚠️ Email sending skipped: {to_email}")
+        return False
 
 class CloudGmailWatcher:
     """Gmail monitoring for cloud deployment"""
