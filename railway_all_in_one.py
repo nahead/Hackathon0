@@ -553,31 +553,38 @@ class CloudEmailSender:
             raise ValueError("SMTP_USER and SMTP_PASS required")
 
     def send_email(self, to_email, subject, body):
-        """Send email via SMTP"""
+        """Send email via SMTP - tries SSL port 465 first, then TLS port 587"""
+        # Create message
+        msg = MIMEMultipart()
+        msg['From'] = self.smtp_user
+        msg['To'] = to_email
+        msg['Subject'] = subject
+        msg.attach(MIMEText(body, 'plain'))
+
+        # Try port 465 (SSL) first - more likely to work on free cloud platforms
         try:
-            # Create message
-            msg = MIMEMultipart()
-            msg['From'] = self.smtp_user
-            msg['To'] = to_email
-            msg['Subject'] = subject
+            server = smtplib.SMTP_SSL('smtp.gmail.com', 465, timeout=10)
+            server.login(self.smtp_user, self.smtp_pass)
+            server.send_message(msg)
+            server.quit()
+            logger.info(f"✅ Email sent to: {to_email} (via SSL)")
+            return True
+        except (OSError, ConnectionError, TimeoutError) as e:
+            logger.info(f"ℹ️ Port 465 blocked, trying port 587...")
+        except Exception as e:
+            logger.info(f"ℹ️ SSL failed, trying TLS: {e}")
 
-            # Add body
-            msg.attach(MIMEText(body, 'plain'))
-
-            # Connect to Gmail SMTP with timeout
+        # Fallback to port 587 (TLS)
+        try:
             server = smtplib.SMTP('smtp.gmail.com', 587, timeout=10)
             server.starttls()
             server.login(self.smtp_user, self.smtp_pass)
-
-            # Send email
             server.send_message(msg)
             server.quit()
-
-            logger.info(f"✅ Email sent to: {to_email}")
+            logger.info(f"✅ Email sent to: {to_email} (via TLS)")
             return True
-
-        except (OSError, ConnectionError) as e:
-            # Network errors - common on free cloud platforms
+        except (OSError, ConnectionError, TimeoutError) as e:
+            # Network errors - both ports blocked on free cloud platforms
             logger.warning(f"⚠️ Email sending skipped (network restricted): {to_email}")
             return False
         except Exception as e:
