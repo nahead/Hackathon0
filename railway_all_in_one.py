@@ -25,11 +25,39 @@ from http.server import HTTPServer, BaseHTTPRequestHandler
 logs_dir = Path("/tmp/logs")
 logs_dir.mkdir(parents=True, exist_ok=True)
 
+# Global log buffer for live logs display
+class LogBuffer:
+    def __init__(self, max_size=100):
+        self.logs = []
+        self.max_size = max_size
+        self.lock = threading.Lock()
+
+    def add(self, log_entry):
+        with self.lock:
+            self.logs.append(log_entry)
+            if len(self.logs) > self.max_size:
+                self.logs.pop(0)
+
+    def get_recent(self, count=50):
+        with self.lock:
+            return self.logs[-count:]
+
+log_buffer = LogBuffer()
+
+class BufferHandler(logging.Handler):
+    def emit(self, record):
+        log_entry = {
+            'timestamp': datetime.fromtimestamp(record.created).isoformat(),
+            'level': record.levelname,
+            'message': record.getMessage()
+        }
+        log_buffer.add(log_entry)
+
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    handlers=[logging.StreamHandler()]
+    handlers=[logging.StreamHandler(), BufferHandler()]
 )
 logger = logging.getLogger('RailwayOrchestrator')
 
@@ -51,6 +79,14 @@ class HealthHandler(BaseHTTPRequestHandler):
                 }
             }
             self.wfile.write(json.dumps(health).encode())
+        elif self.path == '/logs':
+            self.send_response(200)
+            self.send_header('Content-type', 'application/json')
+            self.send_header('Access-Control-Allow-Origin', '*')
+            self.end_headers()
+
+            logs = log_buffer.get_recent(50)
+            self.wfile.write(json.dumps(logs).encode())
         elif self.path == '/':
             self.send_response(200)
             self.send_header('Content-type', 'text/html')
@@ -197,6 +233,63 @@ class HealthHandler(BaseHTTPRequestHandler):
             font-weight: bold;
         }
 
+        .logs-container {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 15px;
+            border-radius: 8px;
+            max-height: 400px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85em;
+        }
+
+        .log-entry {
+            padding: 5px 0;
+            border-bottom: 1px solid #333;
+        }
+
+        .log-entry:last-child {
+            border-bottom: none;
+        }
+
+        .log-timestamp {
+            color: #858585;
+            margin-right: 10px;
+        }
+
+        .log-level {
+            font-weight: bold;
+            margin-right: 10px;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 0.9em;
+        }
+
+        .log-level-INFO {
+            background: #0e7490;
+            color: white;
+        }
+
+        .log-level-WARNING {
+            background: #f59e0b;
+            color: white;
+        }
+
+        .log-level-ERROR {
+            background: #dc2626;
+            color: white;
+        }
+
+        .log-level-DEBUG {
+            background: #6b7280;
+            color: white;
+        }
+
+        .log-message {
+            color: #d4d4d4;
+        }
+
         .links {
             display: flex;
             gap: 15px;
@@ -333,6 +426,13 @@ class HealthHandler(BaseHTTPRequestHandler):
         </div>
 
         <div class="card">
+            <h2><span class="icon">📝</span> Live Activity Logs</h2>
+            <div id="logs-container" class="logs-container">
+                <div class="log-entry">Loading logs...</div>
+            </div>
+        </div>
+
+        <div class="card">
             <h2><span class="icon">🏆</span> Hackathon Tier Achievement</h2>
             <div class="tier-grid">
                 <div class="tier-card">
@@ -373,6 +473,36 @@ class HealthHandler(BaseHTTPRequestHandler):
     </div>
 
     <script>
+        // Fetch and display logs
+        function fetchLogs() {
+            fetch('/logs')
+                .then(response => response.json())
+                .then(logs => {
+                    const container = document.getElementById('logs-container');
+                    if (logs.length === 0) {
+                        container.innerHTML = '<div class="log-entry">No logs yet...</div>';
+                        return;
+                    }
+
+                    container.innerHTML = logs.map(log => {
+                        const timestamp = new Date(log.timestamp).toLocaleTimeString();
+                        return `
+                            <div class="log-entry">
+                                <span class="log-timestamp">${timestamp}</span>
+                                <span class="log-level log-level-${log.level}">${log.level}</span>
+                                <span class="log-message">${log.message}</span>
+                            </div>
+                        `;
+                    }).join('');
+
+                    // Auto-scroll to bottom
+                    container.scrollTop = container.scrollHeight;
+                })
+                .catch(err => {
+                    console.error('Failed to fetch logs:', err);
+                });
+        }
+
         // Update timestamp
         function updateTimestamp() {
             const now = new Date();
@@ -395,10 +525,14 @@ class HealthHandler(BaseHTTPRequestHandler):
         // Update every second
         updateTimestamp();
         updateUptime();
+        fetchLogs();
         setInterval(() => {
             updateTimestamp();
             updateUptime();
         }, 1000);
+
+        // Fetch logs every 3 seconds
+        setInterval(fetchLogs, 3000);
     </script>
 </body>
 </html>"""
