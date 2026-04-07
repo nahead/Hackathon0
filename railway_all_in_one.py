@@ -796,19 +796,15 @@ class CloudVaultSync:
 
     def __init__(self, vault_path):
         self.vault_path = Path(vault_path)
-        self.repo_url = os.getenv('VAULT_REPO_URL')
-        self.git_username = os.getenv('GIT_USERNAME')
-        self.git_token = os.getenv('GIT_TOKEN')
-
-        if not all([self.repo_url, self.git_username, self.git_token]):
-            logger.warning("⚠️ Vault sync credentials not configured - running in demo mode")
-            self.enabled = False
-            return
-
         self.enabled = True
 
-        # Setup authenticated URL
-        self.auth_url = self.repo_url.replace('https://', f'https://{self.git_username}:{self.git_token}@')
+        # Ensure vault directory exists
+        self.vault_path.mkdir(parents=True, exist_ok=True)
+
+        # Create required subdirectories
+        (self.vault_path / "Pending_Approval").mkdir(parents=True, exist_ok=True)
+        (self.vault_path / "Approved").mkdir(parents=True, exist_ok=True)
+        (self.vault_path / "Done").mkdir(parents=True, exist_ok=True)
 
         # Initialize email sender
         try:
@@ -816,6 +812,8 @@ class CloudVaultSync:
         except Exception as e:
             logger.warning(f"⚠️ Email sender not available: {e}")
             self.email_sender = None
+
+        logger.info(f"✅ Vault initialized at: {self.vault_path}")
 
     def process_approved_emails(self):
         """Process approved emails and send them"""
@@ -883,60 +881,13 @@ class CloudVaultSync:
                 pass
 
     def clone_or_pull_vault(self):
-        """Clone vault repository or pull latest changes"""
+        """Ensure vault directory is ready"""
         if not self.enabled:
-            logger.info("ℹ️ Vault sync disabled - running in demo mode")
             return True
 
-        try:
-            # Check if vault directory exists
-            if self.vault_path.exists():
-                # Check if it's a valid git repo
-                if (self.vault_path / '.git').exists():
-                    logger.info("🔄 Pulling latest changes...")
-                    subprocess.run(
-                        ['git', 'pull', 'origin', 'main'],
-                        cwd=self.vault_path,
-                        check=True,
-                        capture_output=True,
-                        timeout=30
-                    )
-                    logger.info("✅ Vault updated")
-                else:
-                    # Directory exists but not a git repo - remove and clone
-                    logger.info("🗑️ Removing invalid vault directory...")
-                    import shutil
-                    shutil.rmtree(self.vault_path)
-                    logger.info("📥 Cloning vault repository...")
-                    subprocess.run(
-                        ['git', 'clone', self.auth_url, str(self.vault_path)],
-                        check=True,
-                        capture_output=True,
-                        timeout=60
-                    )
-                    logger.info("✅ Vault cloned successfully")
-            else:
-                # Directory doesn't exist - clone fresh
-                logger.info("📥 Cloning vault repository...")
-                subprocess.run(
-                    ['git', 'clone', self.auth_url, str(self.vault_path)],
-                    check=True,
-                    capture_output=True,
-                    timeout=60
-                )
-                logger.info("✅ Vault cloned successfully")
-
-            return True
-
-        except subprocess.TimeoutExpired:
-            logger.warning("⚠️ Git operation timed out - will retry later")
-            return False
-        except subprocess.CalledProcessError as e:
-            logger.warning(f"⚠️ Git operation failed - will retry later")
-            # If clone failed, clean up partial directory
-            if self.vault_path.exists() and not (self.vault_path / '.git').exists():
-                try:
-                    import shutil
+        # Vault is already initialized in __init__
+        logger.info("✅ Vault directory ready")
+        return True
                     shutil.rmtree(self.vault_path)
                     logger.info("🗑️ Cleaned up failed clone")
                 except:
@@ -944,95 +895,27 @@ class CloudVaultSync:
             return False
 
     def commit_and_push_changes(self):
-        """Commit and push changes to vault"""
+        """Files are automatically tracked by main repository"""
         if not self.enabled:
             return True
 
-        try:
-            # Check for changes
-            result = subprocess.run(
-                ['git', 'status', '--porcelain'],
-                cwd=self.vault_path,
-                capture_output=True,
-                text=True,
-                timeout=10
-            )
-
-            if not result.stdout.strip():
-                return True  # No changes
-
-            logger.info(f"📝 Changes detected: {len(result.stdout.strip().splitlines())} files")
-
-            # Configure git identity
-            try:
-                subprocess.run(
-                    ['git', 'config', 'user.email', 'cloud-agent@ai-employee.com'],
-                    cwd=self.vault_path,
-                    check=True,
-                    capture_output=True,
-                    timeout=5
-                )
-                subprocess.run(
-                    ['git', 'config', 'user.name', 'AI Employee Cloud Agent'],
-                    cwd=self.vault_path,
-                    check=True,
-                    capture_output=True,
-                    timeout=5
-                )
-                logger.info("✅ Git identity configured")
-            except subprocess.CalledProcessError as e:
-                logger.warning(f"⚠️ Git config failed: {e.stderr.decode() if e.stderr else e}")
-
-            # Add all changes
-            subprocess.run(['git', 'add', '.'], cwd=self.vault_path, check=True, capture_output=True, timeout=10)
-            logger.info("✅ Changes staged")
-
-            # Commit
-            commit_msg = f"Cloud agent update - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
-            result = subprocess.run(
-                ['git', 'commit', '-m', commit_msg],
-                cwd=self.vault_path,
-                check=True,
-                capture_output=True,
-                text=True
-            )
-            logger.info("✅ Changes committed")
-
-            # Push
-            subprocess.run(
-                ['git', 'push', 'origin', 'main'],
-                cwd=self.vault_path,
-                check=True,
-                capture_output=True,
-                timeout=30
-            )
-
-            logger.info("✅ Changes pushed to vault")
-            return True
-
-        except subprocess.TimeoutExpired:
-            logger.warning("⚠️ Git push timed out - will retry later")
-            return False
-        except subprocess.CalledProcessError as e:
-            error_msg = e.stderr.decode() if e.stderr else str(e)
-            logger.warning(f"⚠️ Git operation failed - will retry later")
-            return False
-        except Exception as e:
-            logger.warning(f"⚠️ Unexpected error in git push: {e}")
-            return False
+        # Vault is part of main repo - changes are automatically tracked
+        logger.info("✅ Vault changes tracked by main repository")
+        return True
 
 class RailwayOrchestrator:
     """All-in-one orchestrator for Railway/Render"""
 
     def __init__(self):
         self.port = int(os.getenv("PORT", 8080))
-        self.vault_path = Path("/tmp/vault")
+        # Use AI_Employee_Vault in main repo instead of separate vault
+        self.vault_path = Path("AI_Employee_Vault")
 
         logger.info("🚀 Railway All-in-One Orchestrator initialized")
 
     def check_environment(self):
         """Check environment variables"""
-        required = ["SMTP_USER", "SMTP_PASS", "VAULT_REPO_URL", "GIT_USERNAME", "GIT_TOKEN"]
+        required = ["SMTP_USER", "SMTP_PASS"]
         missing = [var for var in required if not os.getenv(var)]
 
         if missing:
