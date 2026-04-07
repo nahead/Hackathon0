@@ -564,8 +564,8 @@ class CloudEmailSender:
             # Add body
             msg.attach(MIMEText(body, 'plain'))
 
-            # Connect to Gmail SMTP
-            server = smtplib.SMTP('smtp.gmail.com', 587)
+            # Connect to Gmail SMTP with timeout
+            server = smtplib.SMTP('smtp.gmail.com', 587, timeout=10)
             server.starttls()
             server.login(self.smtp_user, self.smtp_pass)
 
@@ -576,8 +576,12 @@ class CloudEmailSender:
             logger.info(f"✅ Email sent to: {to_email}")
             return True
 
+        except (OSError, ConnectionError) as e:
+            # Network errors - common on free cloud platforms
+            logger.warning(f"⚠️ Email sending skipped (network restricted): {to_email}")
+            return False
         except Exception as e:
-            logger.error(f"❌ Email sending failed: {e}")
+            logger.warning(f"⚠️ Email sending failed: {e}")
             return False
 
 class CloudGmailWatcher:
@@ -592,18 +596,26 @@ class CloudGmailWatcher:
         self.password = os.getenv('SMTP_PASS')
 
         if not self.email or not self.password:
-            logger.error("Gmail credentials not configured")
-            raise ValueError("SMTP_USER and SMTP_PASS required")
+            logger.warning("⚠️ Gmail credentials not configured - running in demo mode")
+            self.enabled = False
+        else:
+            self.enabled = True
 
     def connect_to_gmail(self):
         """Connect to Gmail using IMAP"""
+        if not self.enabled:
+            return None
+
         try:
-            mail = imaplib.IMAP4_SSL('imap.gmail.com')
+            mail = imaplib.IMAP4_SSL('imap.gmail.com', timeout=10)
             mail.login(self.email, self.password)
             logger.info(f"✅ Connected to Gmail: {self.email}")
             return mail
+        except (OSError, ConnectionError, TimeoutError) as e:
+            logger.warning(f"⚠️ Gmail connection failed (network issue) - will retry later")
+            return None
         except Exception as e:
-            logger.error(f"❌ Gmail connection failed: {e}")
+            logger.warning(f"⚠️ Gmail connection failed: {e}")
             return None
 
     def check_new_emails(self, mail):
@@ -620,7 +632,7 @@ class CloudGmailWatcher:
                         self.process_email(mail, email_id)
 
         except Exception as e:
-            logger.error(f"❌ Error checking emails: {e}")
+            logger.warning(f"⚠️ Error checking emails: {e}")
 
     def process_email(self, mail, email_id):
         """Process individual email"""
@@ -716,8 +728,11 @@ class CloudVaultSync:
         self.git_token = os.getenv('GIT_TOKEN')
 
         if not all([self.repo_url, self.git_username, self.git_token]):
-            logger.error("Vault sync credentials not configured")
-            raise ValueError("VAULT_REPO_URL, GIT_USERNAME, GIT_TOKEN required")
+            logger.warning("⚠️ Vault sync credentials not configured - running in demo mode")
+            self.enabled = False
+            return
+
+        self.enabled = True
 
         # Setup authenticated URL
         self.auth_url = self.repo_url.replace('https://', f'https://{self.git_username}:{self.git_token}@')
@@ -726,11 +741,14 @@ class CloudVaultSync:
         try:
             self.email_sender = CloudEmailSender()
         except Exception as e:
-            logger.warning(f"Email sender not available: {e}")
+            logger.warning(f"⚠️ Email sender not available: {e}")
             self.email_sender = None
 
     def process_approved_emails(self):
         """Process approved emails and send them"""
+        if not self.enabled:
+            return
+
         approved_path = self.vault_path / "Approved"
         done_path = self.vault_path / "Done"
 
@@ -795,6 +813,10 @@ class CloudVaultSync:
 
     def clone_or_pull_vault(self):
         """Clone vault repository or pull latest changes"""
+        if not self.enabled:
+            logger.info("ℹ️ Vault sync disabled - running in demo mode")
+            return True
+
         try:
             # Check if vault directory exists
             if self.vault_path.exists():
@@ -805,7 +827,8 @@ class CloudVaultSync:
                         ['git', 'pull', 'origin', 'main'],
                         cwd=self.vault_path,
                         check=True,
-                        capture_output=True
+                        capture_output=True,
+                        timeout=30
                     )
                     logger.info("✅ Vault updated")
                 else:
@@ -817,7 +840,8 @@ class CloudVaultSync:
                     subprocess.run(
                         ['git', 'clone', self.auth_url, str(self.vault_path)],
                         check=True,
-                        capture_output=True
+                        capture_output=True,
+                        timeout=60
                     )
                     logger.info("✅ Vault cloned successfully")
             else:
@@ -826,14 +850,18 @@ class CloudVaultSync:
                 subprocess.run(
                     ['git', 'clone', self.auth_url, str(self.vault_path)],
                     check=True,
-                    capture_output=True
+                    capture_output=True,
+                    timeout=60
                 )
                 logger.info("✅ Vault cloned successfully")
 
             return True
 
+        except subprocess.TimeoutExpired:
+            logger.warning("⚠️ Git operation timed out - will retry later")
+            return False
         except subprocess.CalledProcessError as e:
-            logger.error(f"❌ Git operation failed: {e}")
+            logger.warning(f"⚠️ Git operation failed - will retry later")
             # If clone failed, clean up partial directory
             if self.vault_path.exists() and not (self.vault_path / '.git').exists():
                 try:
@@ -846,13 +874,17 @@ class CloudVaultSync:
 
     def commit_and_push_changes(self):
         """Commit and push changes to vault"""
+        if not self.enabled:
+            return True
+
         try:
             # Check for changes
             result = subprocess.run(
                 ['git', 'status', '--porcelain'],
                 cwd=self.vault_path,
                 capture_output=True,
-                text=True
+                text=True,
+                timeout=10
             )
 
             if not result.stdout.strip():
@@ -866,20 +898,22 @@ class CloudVaultSync:
                     ['git', 'config', 'user.email', 'cloud-agent@ai-employee.com'],
                     cwd=self.vault_path,
                     check=True,
-                    capture_output=True
+                    capture_output=True,
+                    timeout=5
                 )
                 subprocess.run(
                     ['git', 'config', 'user.name', 'AI Employee Cloud Agent'],
                     cwd=self.vault_path,
                     check=True,
-                    capture_output=True
+                    capture_output=True,
+                    timeout=5
                 )
                 logger.info("✅ Git identity configured")
             except subprocess.CalledProcessError as e:
-                logger.error(f"❌ Git config failed: {e.stderr.decode() if e.stderr else e}")
+                logger.warning(f"⚠️ Git config failed: {e.stderr.decode() if e.stderr else e}")
 
             # Add all changes
-            subprocess.run(['git', 'add', '.'], cwd=self.vault_path, check=True, capture_output=True)
+            subprocess.run(['git', 'add', '.'], cwd=self.vault_path, check=True, capture_output=True, timeout=10)
             logger.info("✅ Changes staged")
 
             # Commit
@@ -898,18 +932,22 @@ class CloudVaultSync:
                 ['git', 'push', 'origin', 'main'],
                 cwd=self.vault_path,
                 check=True,
-                capture_output=True
+                capture_output=True,
+                timeout=30
             )
 
             logger.info("✅ Changes pushed to vault")
             return True
 
+        except subprocess.TimeoutExpired:
+            logger.warning("⚠️ Git push timed out - will retry later")
+            return False
         except subprocess.CalledProcessError as e:
             error_msg = e.stderr.decode() if e.stderr else str(e)
-            logger.error(f"❌ Git operation failed: {error_msg}")
+            logger.warning(f"⚠️ Git operation failed - will retry later")
             return False
         except Exception as e:
-            logger.error(f"❌ Unexpected error in git push: {e}")
+            logger.warning(f"⚠️ Unexpected error in git push: {e}")
             return False
 
 class RailwayOrchestrator:
