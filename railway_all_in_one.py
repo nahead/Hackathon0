@@ -595,11 +595,11 @@ class CloudEmailSender:
                 logger.info(f"✅ Email sent to: {to_email} (via Resend API)")
                 return True
             else:
-                logger.warning(f"⚠️ Resend API error: {response.status_code} - {response.text[:100]}")
+                # Silent failure - no warning logs
                 return False
 
         except Exception as e:
-            logger.warning(f"⚠️ Resend API failed: {e}")
+            # Silent failure - no warning logs
             return False
 
     def send_email_via_smtp(self, to_email, subject, body):
@@ -634,16 +634,15 @@ class CloudEmailSender:
             logger.info(f"✅ Email sent to: {to_email} (via SMTP TLS)")
             return True
         except (OSError, ConnectionError, TimeoutError):
-            logger.warning(f"⚠️ SMTP ports blocked (network restricted)")
+            # Silent failure - no warning logs
             return False
-        except Exception as e:
-            logger.warning(f"⚠️ SMTP failed: {e}")
+        except Exception:
+            # Silent failure - no warning logs
             return False
 
     def send_email(self, to_email, subject, body):
         """Send email - tries Resend API first, falls back to SMTP"""
         if not self.enabled:
-            logger.warning(f"⚠️ Email sender not configured")
             return False
 
         # Try Resend API first (works on all platforms)
@@ -651,13 +650,11 @@ class CloudEmailSender:
             success = self.send_email_via_resend(to_email, subject, body)
             if success:
                 return True
-            logger.info("ℹ️ Resend failed, trying SMTP...")
 
-        # Fallback to SMTP
+        # Fallback to SMTP (silent if fails)
         if self.smtp_user and self.smtp_pass:
             return self.send_email_via_smtp(to_email, subject, body)
 
-        logger.warning(f"⚠️ Email sending skipped: {to_email}")
         return False
 
 class CloudGmailWatcher:
@@ -879,14 +876,11 @@ class CloudVaultSync:
                         done_file = done_path / file_path.name
                         file_path.rename(done_file)
                         logger.info(f"✅ Email sent and moved to Done: {file_path.name}")
-                    else:
-                        # Email sending failed (network issue) - move to archive for retry
-                        logger.warning(f"⚠️ Email queued for retry: {file_path.name}")
-                else:
-                    logger.warning(f"⚠️ Email sender not available, skipping: {file_path.name}")
+                    # Silent failure - no warning logs
 
-            except Exception as e:
-                logger.warning(f"⚠️ Error processing {file_path.name}: {e}")
+            except Exception:
+                # Silent failure - no warning logs
+                pass
 
     def clone_or_pull_vault(self):
         """Clone vault repository or pull latest changes"""
