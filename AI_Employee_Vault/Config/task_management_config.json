@@ -1,0 +1,62 @@
+{
+  "task_categories": [
+    "email_response",
+    "social_media",
+    "accounting",
+    "client_communication",
+    "content_creation",
+    "business_development",
+    "administrative"
+  ],
+  "priority_levels": [
+    "low",
+    "medium",
+    "high",
+    "urgent"
+  ],
+  "default_task_duration": 30,
+  "auto_schedule_tasks": true,
+  "working_hours": {
+    "start": "09:00",
+    "end": "17:00",
+    "timezone": "UTC"
+  },
+  "task_templates": {
+    "client_followup": {
+      "title": "Follow up with {client_name}",
+      "description": "Follow up on previous communication with {client_name}",
+      "category": "client_communication",
+      "estimated_duration": 15,
+      "priority": "medium"
+    },
+    "invoice_generation": {
+      "title": "Generate invoice for {client_name}",
+      "description": "Create and send invoice for services provided to {client_name}",
+      "category": "accounting",
+      "estimated_duration": 20,
+      "priority": "high"
+    },
+    "content_creation": {
+      "title": "Create content for {platform}",
+      "description": "Develop engaging content for {platform} posting",
+      "category": "content_creation",
+      "estimated_duration": 45,
+      "priority": "medium"
+    }
+  },
+  "recurring_schedules": {
+    "daily_briefing": {
+      "title": "Generate Daily Business Briefing",
+      "frequency": "daily",
+      "time": "08:00",
+      "category": "administrative"
+    },
+    "weekly_audit": {
+      "title": "Conduct Weekly Business Audit",
+      "frequency": "weekly",
+      "day": "sunday",
+      "time": "20:00",
+      "category": "administrative"
+    }
+  }
+}

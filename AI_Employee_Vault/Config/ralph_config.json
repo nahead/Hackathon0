@@ -1,0 +1,32 @@
+{
+  "loop_interval_seconds": 300,
+  "max_actions_per_loop": 3,
+  "working_hours": {
+    "start": "08:00",
+    "end": "18:00"
+  },
+  "enabled_modules": [
+    "email_check",
+    "social_media_post",
+    "task_management",
+    "financial_check",
+    "health_monitor",
+    "content_generation",
+    "client_followup",
+    "daily_briefing"
+  ],
+  "action_probabilities": {
+    "email_check": 0.8,
+    "social_media_post": 0.3,
+    "task_management": 0.9,
+    "financial_check": 0.4,
+    "health_monitor": 0.6,
+    "content_generation": 0.2,
+    "client_followup": 0.5,
+    "daily_briefing": 0.1
+  },
+  "ralph_mode": true,
+  "auto_approve_safe_actions": true,
+  "max_daily_social_posts": 3,
+  "max_daily_emails": 10
+}

@@ -1,0 +1,252 @@
+{
+  "audit_id": "audit_20260303_125501",
+  "period_start": "2026-02-24T12:55:01.371617",
+  "period_end": "2026-03-03T12:55:01.371617",
+  "overall_health_score": 88.5,
+  "key_insights": [
+    "Exceptional performance in social_media",
+    "Strong revenue growth of 15.3%",
+    "High productivity with 88.5% task completion rate"
+  ],
+  "critical_issues": [],
+  "opportunities": [
+    "Leverage strong social_media performance for growth",
+    "Scale social media strategy based on high engagement growth"
+  ],
+  "action_items": [
+    "OPPORTUNITY: Leverage strong social_media performance for growth",
+    "OPPORTUNITY: Scale social media strategy based on high engagement growth",
+    "Email: Maintain current response time performance",
+    "Email: Consider automated responses for common inquiries",
+    "Social_Media: Continue current content strategy",
+    "Social_Media: Increase posting frequency during peak engagement times",
+    "Accounting: Continue revenue growth initiatives",
+    "Accounting: Monitor expense growth rate",
+    "Scheduling: Maintain current productivity levels",
+    "Scheduling: Optimize task estimation accuracy"
+  ],
+  "generated_at": "2026-03-03T12:55:01.371899",
+  "domain_analyses": [
+    {
+      "domain": "email",
+      "health_score": 88.5,
+      "summary": "Email performance is strong with improved response times and high response rates.",
+      "recommendations": [
+        "Maintain current response time performance",
+        "Consider automated responses for common inquiries",
+        "Monitor inbox zero maintenance"
+      ],
+      "metrics": [
+        {
+          "name": "Emails Processed",
+          "value": 45,
+          "unit": "emails",
+          "trend": "up",
+          "change_percent": 12.5,
+          "benchmark": 40
+        },
+        {
+          "name": "Average Response Time",
+          "value": 2.3,
+          "unit": "hours",
+          "trend": "down",
+          "change_percent": -15.2,
+          "benchmark": 4.0
+        },
+        {
+          "name": "Response Rate",
+          "value": 94.2,
+          "unit": "percent",
+          "trend": "stable",
+          "change_percent": 1.1,
+          "benchmark": 90.0
+        },
+        {
+          "name": "Unread Emails",
+          "value": 3,
+          "unit": "emails",
+          "trend": "down",
+          "change_percent": -40.0,
+          "benchmark": 5
+        }
+      ]
+    },
+    {
+      "domain": "social_media",
+      "health_score": 92.3,
+      "summary": "Social media performance is excellent with strong engagement growth across platforms.",
+      "recommendations": [
+        "Continue current content strategy",
+        "Increase posting frequency during peak engagement times",
+        "Explore video content opportunities"
+      ],
+      "metrics": [
+        {
+          "name": "Posts Published",
+          "value": 12,
+          "unit": "posts",
+          "trend": "up",
+          "change_percent": 20.0,
+          "benchmark": 10
+        },
+        {
+          "name": "Total Engagement",
+          "value": 156,
+          "unit": "interactions",
+          "trend": "up",
+          "change_percent": 34.5,
+          "benchmark": 120
+        },
+        {
+          "name": "Engagement Rate",
+          "value": 4.2,
+          "unit": "percent",
+          "trend": "up",
+          "change_percent": 23.5,
+          "benchmark": 3.0
+        },
+        {
+          "name": "Follower Growth",
+          "value": 28,
+          "unit": "followers",
+          "trend": "up",
+          "change_percent": 16.7,
+          "benchmark": 25
+        }
+      ]
+    },
+    {
+      "domain": "accounting",
+      "health_score": 85.7,
+      "summary": "Financial performance is strong with healthy revenue growth and controlled expenses.",
+      "recommendations": [
+        "Continue revenue growth initiatives",
+        "Monitor expense growth rate",
+        "Follow up on outstanding invoices",
+        "Consider investment opportunities"
+      ],
+      "metrics": [
+        {
+          "name": "Revenue",
+          "value": 8750.0,
+          "unit": "USD",
+          "trend": "up",
+          "change_percent": 15.3,
+          "benchmark": 7500.0
+        },
+        {
+          "name": "Expenses",
+          "value": 3200.0,
+          "unit": "USD",
+          "trend": "up",
+          "change_percent": 8.1,
+          "benchmark": 3000.0
+        },
+        {
+          "name": "Net Profit",
+          "value": 5550.0,
+          "unit": "USD",
+          "trend": "up",
+          "change_percent": 19.4,
+          "benchmark": 4500.0
+        },
+        {
+          "name": "Outstanding Invoices",
+          "value": 1200.0,
+          "unit": "USD",
+          "trend": "down",
+          "change_percent": -25.0,
+          "benchmark": 1500.0
+        }
+      ]
+    },
+    {
+      "domain": "scheduling",
+      "health_score": 89.2,
+      "summary": "Productivity is high with excellent task completion rates and reduced overdue items.",
+      "recommendations": [
+        "Maintain current productivity levels",
+        "Optimize task estimation accuracy",
+        "Consider automation for routine tasks"
+      ],
+      "metrics": [
+        {
+          "name": "Tasks Completed",
+          "value": 23,
+          "unit": "tasks",
+          "trend": "up",
+          "change_percent": 9.5,
+          "benchmark": 21
+        },
+        {
+          "name": "Completion Rate",
+          "value": 88.5,
+          "unit": "percent",
+          "trend": "stable",
+          "change_percent": 2.1,
+          "benchmark": 85.0
+        },
+        {
+          "name": "Average Task Duration",
+          "value": 1.8,
+          "unit": "hours",
+          "trend": "down",
+          "change_percent": -12.2,
+          "benchmark": 2.0
+        },
+        {
+          "name": "Overdue Tasks",
+          "value": 2,
+          "unit": "tasks",
+          "trend": "down",
+          "change_percent": -50.0,
+          "benchmark": 4
+        }
+      ]
+    },
+    {
+      "domain": "content",
+      "health_score": 86.8,
+      "summary": "Content performance is solid with improving quality and engagement metrics.",
+      "recommendations": [
+        "Focus on high-engagement content types",
+        "Develop content templates for efficiency",
+        "Increase content repurposing strategies"
+      ],
+      "metrics": [
+        {
+          "name": "Content Pieces Created",
+          "value": 8,
+          "unit": "pieces",
+          "trend": "stable",
+          "change_percent": 0.0,
+          "benchmark": 8
+        },
+        {
+          "name": "Content Quality Score",
+          "value": 4.3,
+          "unit": "rating",
+          "trend": "up",
+          "change_percent": 7.5,
+          "benchmark": 4.0
+        },
+        {
+          "name": "Content Engagement",
+          "value": 89,
+          "unit": "interactions",
+          "trend": "up",
+          "change_percent": 25.4,
+          "benchmark": 70
+        },
+        {
+          "name": "Content Reuse Rate",
+          "value": 15.2,
+          "unit": "percent",
+          "trend": "up",
+          "change_percent": 12.0,
+          "benchmark": 12.0
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "odoo_url": "http://localhost:8069",
+  "database": "ai_employee_db",
+  "username": "admin@aiemployee.com",
+  "password": "admin",
+  "company_name": "AI Employee Company",
+  "currency": "USD",
+  "installation_path": "C:\\Users\\nahead\\odoo-community",
+  "auto_install": true,
+  "accounting_enabled": true
+}

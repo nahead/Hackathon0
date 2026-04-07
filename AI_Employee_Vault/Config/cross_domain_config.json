@@ -1,0 +1,22 @@
+{
+  "enabled_domains": [
+    "email",
+    "social_media",
+    "accounting",
+    "scheduling",
+    "content"
+  ],
+  "workflow_timeout": 3600,
+  "max_concurrent_workflows": 10,
+  "auto_retry_failed_steps": true,
+  "notification_settings": {
+    "email_on_workflow_complete": true,
+    "log_all_events": true
+  },
+  "domain_endpoints": {
+    "email": "email_response_sender.py",
+    "social_media": "auto_content_generator.py",
+    "accounting": "odoo-mcp-server/odoo_mcp_server.py",
+    "scheduling": "scheduling_system.py"
+  }
+}

@@ -1,0 +1,50 @@
+# Security - NEVER commit these files
+*.env
+*.key
+*.pem
+*_session/
+whatsapp_session/
+linkedin_session/
+facebook_session/
+instagram_session/
+twitter_session/
+.wwebjs_*/
+credentials.json
+token.json
+*_token.json
+secrets/
+.secrets/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+
+# System files
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# Logs (keep structure but not content)
+logs/*.log
+*.log
+
+# Temporary files
+tmp/
+temp/
+.tmp/
+
+# Node modules
+node_modules/
+
+# IDE files
+.vscode/
+.idea/
+*.sublime-*
