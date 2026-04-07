@@ -972,11 +972,6 @@ class CloudVaultSync:
         # Vault is already initialized in __init__
         logger.info("✅ Vault directory ready")
         return True
-                    shutil.rmtree(self.vault_path)
-                    logger.info("🗑️ Cleaned up failed clone")
-                except:
-                    pass
-            return False
 
     def commit_and_push_changes(self):
         """Files are automatically tracked by main repository"""
