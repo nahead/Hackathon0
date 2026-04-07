@@ -460,7 +460,7 @@ class HealthHandler(BaseHTTPRequestHandler):
                 </div>
                 <div class="metric">
                     <span class="metric-label">Agent Skills</span>
-                    <span class="metric-value">5 skills</span>
+                    <span class="metric-value">15 skills</span>
                 </div>
             </div>
         </div>
