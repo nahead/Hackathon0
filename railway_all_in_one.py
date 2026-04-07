@@ -570,12 +570,24 @@ class CloudEmailSender:
                 "Content-Type": "application/json"
             }
 
+            # Use Resend's verified domain for sending
+            # User can add custom domain later for branded emails
+            from_email = "AI Employee <onboarding@resend.dev>"
+            if self.smtp_user and '@resend.dev' not in self.smtp_user:
+                # Add reply-to if user has their own email
+                reply_to = self.smtp_user
+            else:
+                reply_to = None
+
             data = {
-                "from": self.smtp_user or "AI Employee <onboarding@resend.dev>",
+                "from": from_email,
                 "to": [to_email],
                 "subject": subject,
                 "text": body
             }
+
+            if reply_to:
+                data["reply_to"] = reply_to
 
             response = requests.post(url, headers=headers, json=data, timeout=10)
 
