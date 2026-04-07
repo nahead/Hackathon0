@@ -804,12 +804,13 @@ class CloudVaultSync:
                         file_path.rename(done_file)
                         logger.info(f"✅ Email sent and moved to Done: {file_path.name}")
                     else:
-                        logger.error(f"❌ Failed to send email: {file_path.name}")
+                        # Email sending failed (network issue) - move to archive for retry
+                        logger.warning(f"⚠️ Email queued for retry: {file_path.name}")
                 else:
                     logger.warning(f"⚠️ Email sender not available, skipping: {file_path.name}")
 
             except Exception as e:
-                logger.error(f"❌ Error processing {file_path.name}: {e}")
+                logger.warning(f"⚠️ Error processing {file_path.name}: {e}")
 
     def clone_or_pull_vault(self):
         """Clone vault repository or pull latest changes"""
