@@ -93,8 +93,19 @@ AI_Employee_Vault/.obsidian/workspace*
 # Cloud deployment secrets
 cloud-deployment/.env
 Railway_Vault/
-AI_Employee_Vault/
 AI_Employee_Vault_Sync/
+
+# Vault - exclude only sensitive/temporary data, not the whole vault
+AI_Employee_Vault/.git/
+AI_Employee_Vault/Logs/
+AI_Employee_Vault/Needs_Action/*.md
+AI_Employee_Vault/Pending_Approval/*.md
+AI_Employee_Vault/Approved/*.md
+AI_Employee_Vault/Done/*.md
+AI_Employee_Vault/Rejected/*.md
+AI_Employee_Vault/Plans/*.md
+AI_Employee_Vault/Briefings/*.md
+AI_Employee_Vault/Audits/*.md
 
 # MCP server node_modules (keep package.json)
 email-mcp-server/node_modules/
