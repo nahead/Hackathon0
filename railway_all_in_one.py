@@ -88,6 +88,14 @@ class HealthHandler(BaseHTTPRequestHandler):
 
             logs = log_buffer.get_recent(50)
             self.wfile.write(json.dumps(logs).encode())
+        elif self.path == '/emails':
+            self.send_response(200)
+            self.send_header('Content-type', 'application/json')
+            self.send_header('Access-Control-Allow-Origin', '*')
+            self.end_headers()
+
+            emails = self.get_pending_emails()
+            self.wfile.write(json.dumps(emails).encode())
         elif self.path == '/':
             self.send_response(200)
             self.send_header('Content-type', 'text/html')
@@ -96,6 +104,37 @@ class HealthHandler(BaseHTTPRequestHandler):
         else:
             self.send_response(404)
             self.end_headers()
+
+    def get_pending_emails(self):
+        """Get list of pending emails"""
+        try:
+            vault_path = Path("AI_Employee_Vault/Pending_Approval")
+            if not vault_path.exists():
+                return []
+
+            emails = []
+            for email_file in vault_path.glob("EMAIL_*.md"):
+                try:
+                    content = email_file.read_text(encoding='utf-8')
+
+                    # Extract email details
+                    sender_match = re.search(r'sender:\s*(.+)', content)
+                    subject_match = re.search(r'subject:\s*(.+)', content)
+                    body_match = re.search(r'## Email Body:\s*```\s*(.+?)\s*```', content, re.DOTALL)
+
+                    emails.append({
+                        'filename': email_file.name,
+                        'sender': sender_match.group(1).strip() if sender_match else 'Unknown',
+                        'subject': subject_match.group(1).strip() if subject_match else 'No Subject',
+                        'preview': body_match.group(1).strip()[:200] + '...' if body_match else '',
+                        'timestamp': datetime.fromtimestamp(email_file.stat().st_mtime).isoformat()
+                    })
+                except Exception:
+                    pass
+
+            return sorted(emails, key=lambda x: x['timestamp'], reverse=True)
+        except Exception:
+            return []
 
     def get_dashboard_html(self):
         """Generate professional dashboard HTML"""
@@ -427,6 +466,13 @@ class HealthHandler(BaseHTTPRequestHandler):
         </div>
 
         <div class="card">
+            <h2><span class="icon">📧</span> Detected Emails (Pending Approval)</h2>
+            <div id="emails-container" style="max-height: 300px; overflow-y: auto;">
+                <div style="color: #666; padding: 10px;">Loading emails...</div>
+            </div>
+        </div>
+
+        <div class="card">
             <h2><span class="icon">📝</span> Live Activity Logs</h2>
             <div id="logs-container" class="logs-container">
                 <div class="log-entry">Loading logs...</div>
@@ -474,6 +520,42 @@ class HealthHandler(BaseHTTPRequestHandler):
     </div>
 
     <script>
+        // Fetch and display emails
+        function fetchEmails() {
+            fetch('/emails')
+                .then(response => response.json())
+                .then(emails => {
+                    const container = document.getElementById('emails-container');
+                    if (emails.length === 0) {
+                        container.innerHTML = '<div style="color: #666; padding: 10px;">No pending emails</div>';
+                        return;
+                    }
+
+                    container.innerHTML = emails.map(email => {
+                        const timestamp = new Date(email.timestamp).toLocaleString();
+                        return `
+                            <div style="border-bottom: 1px solid #f0f0f0; padding: 15px;">
+                                <div style="font-weight: bold; color: #667eea; margin-bottom: 5px;">
+                                    ${email.subject}
+                                </div>
+                                <div style="color: #666; font-size: 0.9em; margin-bottom: 5px;">
+                                    From: ${email.sender}
+                                </div>
+                                <div style="color: #999; font-size: 0.85em; margin-bottom: 8px;">
+                                    ${timestamp}
+                                </div>
+                                <div style="color: #333; font-size: 0.9em; background: #f9f9f9; padding: 8px; border-radius: 5px;">
+                                    ${email.preview}
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+                })
+                .catch(err => {
+                    console.error('Failed to fetch emails:', err);
+                });
+        }
+
         // Fetch and display logs
         function fetchLogs() {
             fetch('/logs')
@@ -527,13 +609,15 @@ class HealthHandler(BaseHTTPRequestHandler):
         updateTimestamp();
         updateUptime();
         fetchLogs();
+        fetchEmails();
         setInterval(() => {
             updateTimestamp();
             updateUptime();
         }, 1000);
 
-        // Fetch logs every 3 seconds
+        // Fetch logs and emails every 3 seconds
         setInterval(fetchLogs, 3000);
+        setInterval(fetchEmails, 3000);
     </script>
 </body>
 </html>"""
