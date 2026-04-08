@@ -9,6 +9,10 @@ import imaplib
 import email
 from datetime import datetime
 from pathlib import Path
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 def test_gmail_connection():
     """Test Gmail IMAP connection"""

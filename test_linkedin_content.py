@@ -7,6 +7,10 @@ Tests content generation for LinkedIn posts
 import os
 from datetime import datetime
 from pathlib import Path
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 def generate_linkedin_content():
     """Generate LinkedIn post content"""

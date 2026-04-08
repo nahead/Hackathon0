@@ -7,6 +7,10 @@ Tests if email sending is working via Resend API
 import os
 import requests
 from datetime import datetime
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 def test_resend_api():
     """Test email sending via Resend API"""

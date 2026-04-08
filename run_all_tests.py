@@ -8,6 +8,10 @@ import os
 import sys
 import subprocess
 from pathlib import Path
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 def print_header(title):
     """Print formatted header"""
