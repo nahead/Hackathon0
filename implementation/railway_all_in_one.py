@@ -1069,6 +1069,119 @@ Needs_Action -> Processing -> **Pending_Approval** -> Approved -> Done
                 # Silent failure - no warning logs
                 pass
 
+    def process_approved_linkedin_posts(self):
+        """Process approved LinkedIn posts and publish them"""
+        if not self.enabled:
+            return
+
+        approved_path = self.vault_path / "Approved"
+        done_path = self.vault_path / "Done"
+
+        if not approved_path.exists():
+            return
+
+        # Get all approved LinkedIn post files
+        linkedin_posts = list(approved_path.glob("LINKEDIN_POST_*.md"))
+
+        if not linkedin_posts:
+            return
+
+        # Check LinkedIn credentials
+        access_token = os.getenv('LINKEDIN_ACCESS_TOKEN', '')
+        person_urn = os.getenv('LINKEDIN_PERSON_URN', '')
+
+        if not access_token or not person_urn:
+            logger.warning("⚠️ LinkedIn credentials not configured, skipping posts")
+            return
+
+        logger.info(f"📱 Processing {len(linkedin_posts)} LinkedIn post(s)")
+
+        for post_file in linkedin_posts:
+            try:
+                # Read post content
+                content = post_file.read_text(encoding='utf-8')
+
+                # Extract content (skip frontmatter if present)
+                lines = content.split('\n')
+                post_content = []
+                in_frontmatter = False
+
+                for line in lines:
+                    if line.strip() == '---':
+                        in_frontmatter = not in_frontmatter
+                        continue
+                    if not in_frontmatter and line.strip():
+                        post_content.append(line)
+
+                post_text = '\n'.join(post_content).strip()
+
+                if not post_text:
+                    logger.warning(f"⚠️ Empty post content in: {post_file.name}")
+                    continue
+
+                # Post to LinkedIn using API
+                logger.info(f"📱 Posting to LinkedIn: {post_file.name}")
+                success = self.post_to_linkedin(post_text, access_token, person_urn)
+
+                if success:
+                    # Move to Done folder
+                    done_path.mkdir(parents=True, exist_ok=True)
+                    done_file = done_path / post_file.name
+                    post_file.rename(done_file)
+                    logger.info(f"✅ LinkedIn post published and moved to Done: {post_file.name}")
+                else:
+                    logger.warning(f"❌ Failed to post: {post_file.name}")
+
+            except Exception as e:
+                logger.error(f"❌ Error processing LinkedIn post {post_file.name}: {e}")
+
+    def post_to_linkedin(self, content, access_token, person_urn):
+        """Post content to LinkedIn using API"""
+        url = "https://api.linkedin.com/v2/ugcPosts"
+
+        headers = {
+            'Authorization': f'Bearer {access_token}',
+            'Content-Type': 'application/json',
+            'X-Restli-Protocol-Version': '2.0.0'
+        }
+
+        # Prepare post data
+        post_data = {
+            "author": person_urn,
+            "lifecycleState": "PUBLISHED",
+            "specificContent": {
+                "com.linkedin.ugc.ShareContent": {
+                    "shareCommentary": {
+                        "text": content
+                    },
+                    "shareMediaCategory": "NONE"
+                }
+            },
+            "visibility": {
+                "com.linkedin.ugc.MemberNetworkVisibility": "PUBLIC"
+            }
+        }
+
+        try:
+            response = requests.post(
+                url,
+                headers=headers,
+                json=post_data,
+                timeout=30
+            )
+
+            if response.status_code == 201:
+                post_id = response.headers.get('X-RestLi-Id', 'unknown')
+                logger.info(f"✅ LinkedIn post published successfully! Post ID: {post_id}")
+                return True
+            else:
+                logger.error(f"❌ LinkedIn API error: {response.status_code} - {response.text}")
+                return False
+
+        except Exception as e:
+            logger.error(f"❌ Exception while posting to LinkedIn: {e}")
+            return False
+
     def clone_or_pull_vault(self):
         """Ensure vault directory is ready"""
         if not self.enabled:
@@ -1129,6 +1242,9 @@ class RailwayOrchestrator:
 
                     # Process approved emails (send them)
                     vault_sync.process_approved_emails()
+
+                    # Process approved LinkedIn posts (publish them)
+                    vault_sync.process_approved_linkedin_posts()
 
                     # Push any local changes
                     vault_sync.commit_and_push_changes()
