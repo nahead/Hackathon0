@@ -237,7 +237,7 @@ ls odoo-mcp-server/index.js
 
 ```bash
 # Check cloud orchestrator file
-ls -la railway_all_in_one.py
+ls -la implementation/railway_all_in_one.py
 
 # Test health endpoint
 curl https://ai-employee-cloud.onrender.com/health
@@ -432,7 +432,7 @@ echo "✓ Gold Tier:"
 # Platinum Tier
 echo ""
 echo "✓ Platinum Tier:"
-[ -f "railway_all_in_one.py" ] && echo "  ✅ Cloud Orchestrator" || echo "  ❌ Cloud Orchestrator"
+[ -f "implementation/railway_all_in_one.py" ] && echo "  ✅ Cloud Orchestrator" || echo "  ❌ Cloud Orchestrator"
 curl -s https://ai-employee-cloud.onrender.com/health > /dev/null && echo "  ✅ Live Deployment" || echo "  ❌ Live Deployment"
 
 echo ""
