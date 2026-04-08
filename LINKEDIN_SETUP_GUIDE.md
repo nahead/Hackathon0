@@ -12,12 +12,34 @@ You need 2 things:
 
 ## 🚀 Method 1: Quick Setup (Recommended)
 
-### Step 1: Open Authorization URL
+### Important: Enable LinkedIn Posting Permission First
+
+Before starting, you need to enable posting permission in LinkedIn Developer Portal:
+
+1. Go to: https://www.linkedin.com/developers/apps
+2. Click on your app (or create new app if needed)
+3. Go to **"Products"** tab
+4. Find **"Share on LinkedIn"** product
+5. Click **"Request access"**
+6. Fill out the form and submit
+7. **Wait for approval** (can take 1-3 days)
+
+**Note:** Without this approval, you'll get "invalid_scope_error"
+
+### Step 1: Open Authorization URL (After Approval)
 
 Copy this URL and open in your browser:
 
 ```
 https://www.linkedin.com/oauth/v2/authorization?response_type=code&client_id=777mj195y7yyos&redirect_uri=http://localhost:8080/callback&scope=openid%20profile%20email%20w_member_social
+```
+
+**If you get "invalid_scope_error":** The app doesn't have posting permission yet. Wait for LinkedIn approval.
+
+**Alternative (Get credentials without posting):**
+Use this URL to at least get your access token and person URN:
+```
+https://www.linkedin.com/oauth/v2/authorization?response_type=code&client_id=777mj195y7yyos&redirect_uri=http://localhost:8080/callback&scope=openid%20profile%20email
 ```
 
 ### Step 2: Authorize the App
