@@ -832,6 +832,8 @@ class CloudVaultSync:
         self.vault_path.mkdir(parents=True, exist_ok=True)
 
         # Create required subdirectories
+        (self.vault_path / "Needs_Action").mkdir(parents=True, exist_ok=True)
+        (self.vault_path / "Processing").mkdir(parents=True, exist_ok=True)
         (self.vault_path / "Pending_Approval").mkdir(parents=True, exist_ok=True)
         (self.vault_path / "Approved").mkdir(parents=True, exist_ok=True)
         (self.vault_path / "Done").mkdir(parents=True, exist_ok=True)
@@ -844,6 +846,159 @@ class CloudVaultSync:
             self.email_sender = None
 
         logger.info(f"✅ Vault initialized at: {self.vault_path}")
+
+    def generate_email_response(self, email_data):
+        """Generate appropriate response based on email content"""
+        subject = email_data.get('subject', '').lower()
+        content = email_data.get('email_content', '').lower()
+
+        # Simple response generation based on keywords
+        if 'urgent' in subject or 'urgent' in content:
+            if 'payment' in subject or 'payment' in content:
+                response = """Thank you for your email regarding the urgent payment matter.
+
+I have received your message and understand the urgency. I will review the payment details and get back to you within 2 hours with a resolution.
+
+If you need immediate assistance, please feel free to call our support line.
+
+Best regards,
+AI Employee System"""
+            else:
+                response = """Thank you for your urgent message.
+
+I have received your email and will prioritize this matter. I will respond with the necessary information within 2 hours.
+
+Best regards,
+AI Employee System"""
+
+        elif 'meeting' in subject or 'meeting' in content:
+            response = """Thank you for your email.
+
+I have received your meeting request. I will check the calendar and get back to you with available time slots within 24 hours.
+
+Best regards,
+AI Employee System"""
+
+        elif 'question' in subject or 'inquiry' in subject or '?' in content:
+            response = """Thank you for your inquiry.
+
+I have received your question and will provide you with a detailed response within 24 hours.
+
+Best regards,
+AI Employee System"""
+
+        else:
+            # Default response
+            response = """Thank you for your email.
+
+I have received your message and will review it carefully. I will respond with the appropriate information within 24 hours.
+
+Best regards,
+AI Employee System"""
+
+        return response
+
+    def process_needs_action(self):
+        """Process files from Needs_Action and create approval files"""
+        if not self.enabled:
+            return
+
+        needs_action_path = self.vault_path / "Needs_Action"
+        processing_path = self.vault_path / "Processing"
+        pending_approval_path = self.vault_path / "Pending_Approval"
+
+        if not needs_action_path.exists():
+            return
+
+        # Get all action files
+        action_files = list(needs_action_path.glob("EMAIL_DETECTED_*.md"))
+
+        if not action_files:
+            return
+
+        logger.info(f"📋 Processing {len(action_files)} action file(s)")
+
+        for action_file in action_files:
+            try:
+                # Read action file
+                content = action_file.read_text(encoding='utf-8')
+
+                # Extract email data from frontmatter
+                email_data = {}
+                frontmatter_match = re.search(r'---\n(.*?)\n---', content, re.DOTALL)
+                if frontmatter_match:
+                    frontmatter = frontmatter_match.group(1)
+                    for line in frontmatter.split('\n'):
+                        if ':' in line:
+                            key, value = line.split(':', 1)
+                            email_data[key.strip()] = value.strip()
+
+                # Extract email content
+                content_match = re.search(r'\*\*Content:\*\*\n```\n(.*?)\n```', content, re.DOTALL)
+                if content_match:
+                    email_data['email_content'] = content_match.group(1).strip()
+                else:
+                    email_data['email_content'] = "No content available"
+
+                if not email_data.get('sender') or not email_data.get('subject'):
+                    logger.warning(f"⚠️ Could not parse action file: {action_file.name}")
+                    continue
+
+                # Generate response
+                response = self.generate_email_response(email_data)
+
+                # Create approval file
+                timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+                approval_filename = f"EMAIL_RESPONSE_{timestamp}.md"
+                approval_filepath = pending_approval_path / approval_filename
+
+                approval_content = f"""---
+type: email_response_approval
+sender: {email_data.get('sender', 'Unknown')}
+subject: {email_data.get('subject', 'No Subject')}
+email_id: {email_data.get('email_id', 'unknown')}
+created: {datetime.now().isoformat()}
+status: pending_approval
+---
+
+## Original Email
+
+**From:** {email_data.get('sender', 'Unknown')}
+**Subject:** {email_data.get('subject', 'No Subject')}
+**Received:** {email_data.get('received', 'Unknown')}
+
+**Content:**
+```
+{email_data.get('email_content', 'No content available')}
+```
+
+## Proposed Response:
+
+```
+{response}
+```
+
+## Instructions
+
+1. **To Approve:** Move this file to `Approved/` folder
+2. **To Edit:** Modify the response above and keep in Pending_Approval/
+3. **To Reject:** Delete this file
+
+## Workflow
+Needs_Action -> Processing -> **Pending_Approval** -> Approved -> Done
+"""
+
+                approval_filepath.write_text(approval_content, encoding='utf-8')
+                logger.info(f"✅ Created approval file: {approval_filename}")
+
+                # Move processed action file to Processing folder
+                processing_path.mkdir(parents=True, exist_ok=True)
+                processed_filepath = processing_path / action_file.name
+                action_file.rename(processed_filepath)
+                logger.info(f"📁 Moved to Processing: {action_file.name}")
+
+            except Exception as e:
+                logger.warning(f"⚠️ Error processing {action_file.name}: {e}")
 
     def process_approved_emails(self):
         """Process approved emails and send them"""
@@ -964,6 +1119,9 @@ class RailwayOrchestrator:
                 try:
                     # Pull changes every 5 minutes
                     vault_sync.clone_or_pull_vault()
+
+                    # Process action files (Needs_Action -> Pending_Approval)
+                    vault_sync.process_needs_action()
 
                     # Process approved emails (send them)
                     vault_sync.process_approved_emails()
