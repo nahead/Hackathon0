@@ -74,8 +74,8 @@ whatsapp_session/
 *.backup
 *~
 
-# Test files
-test_*.py
+# Test files (excluding submission test scripts)
+# test_*.py
 *_test.py
 debug_*.py
 *_debug.py
