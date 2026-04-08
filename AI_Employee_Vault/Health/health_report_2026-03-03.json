@@ -1,9 +1,0 @@
-{
-  "timestamp": "2026-03-03T20:02:58.788548",
-  "system_degraded": false,
-  "degradation_level": null,
-  "critical_components_down": [],
-  "component_health": {
-    "email_system": {
-      "name": "email_system",
-      "status": 
