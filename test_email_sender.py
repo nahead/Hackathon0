@@ -14,13 +14,13 @@ load_dotenv()
 
 def test_resend_api():
     """Test email sending via Resend API"""
-    print("🔍 Testing Resend API Email Sending...")
+    print("[TEST] Testing Resend API Email Sending...")
 
     # Get API key from environment
     resend_api_key = os.getenv('RESEND_API_KEY')
 
     if not resend_api_key:
-        print("❌ ERROR: RESEND_API_KEY environment variable not set")
+        print("[ERROR] ERROR: RESEND_API_KEY environment variable not set")
         print("\nSet it with:")
         print("  export RESEND_API_KEY='re_your_api_key'")
         print("\nGet your API key from: https://resend.com/api-keys")
@@ -46,7 +46,7 @@ If you received this email, the email sending functionality is working correctly
 Timestamp: """ + datetime.now().isoformat()
         }
 
-        print(f"\n📤 Sending test email to: {data['to'][0]}")
+        print(f"\n[SEND] Sending test email to: {data['to'][0]}")
         print(f"   Subject: {data['subject']}")
 
         # Send email
@@ -54,29 +54,29 @@ Timestamp: """ + datetime.now().isoformat()
 
         if response.status_code == 200:
             result = response.json()
-            print(f"\n✅ Email sent successfully!")
+            print(f"\n[OK] Email sent successfully!")
             print(f"   Email ID: {result.get('id', 'N/A')}")
-            print(f"\n📬 Check your inbox: {data['to'][0]}")
+            print(f"\n[INBOX] Check your inbox: {data['to'][0]}")
             return True
         else:
-            print(f"\n❌ ERROR: Failed to send email")
+            print(f"\n[ERROR] ERROR: Failed to send email")
             print(f"   Status Code: {response.status_code}")
             print(f"   Response: {response.text}")
             return False
 
     except Exception as e:
-        print(f"❌ ERROR: {e}")
+        print(f"[ERROR] ERROR: {e}")
         return False
 
 def test_smtp_fallback():
     """Test SMTP email sending (fallback method)"""
-    print("\n🔍 Testing SMTP Email Sending (Fallback)...")
+    print("\n[TEST] Testing SMTP Email Sending (Fallback)...")
 
     smtp_user = os.getenv('SMTP_USER')
     smtp_pass = os.getenv('SMTP_PASS')
 
     if not smtp_user or not smtp_pass:
-        print("⚠️ SMTP credentials not set, skipping SMTP test")
+        print("[WARN] SMTP credentials not set, skipping SMTP test")
         return None
 
     try:
@@ -96,7 +96,7 @@ Timestamp: {datetime.now().isoformat()}
 """
         msg.attach(MIMEText(body, 'plain'))
 
-        print(f"\n📤 Sending SMTP test email to: {smtp_user}")
+        print(f"\n[SEND] Sending SMTP test email to: {smtp_user}")
 
         # Try SSL first (port 465)
         try:
@@ -104,10 +104,10 @@ Timestamp: {datetime.now().isoformat()}
             server.login(smtp_user, smtp_pass)
             server.send_message(msg)
             server.quit()
-            print("✅ SMTP email sent successfully (SSL port 465)")
+            print("[OK] SMTP email sent successfully (SSL port 465)")
             return True
         except Exception as e:
-            print(f"⚠️ SSL failed: {e}")
+            print(f"[WARN] SSL failed: {e}")
 
             # Try TLS (port 587)
             try:
@@ -116,14 +116,14 @@ Timestamp: {datetime.now().isoformat()}
                 server.login(smtp_user, smtp_pass)
                 server.send_message(msg)
                 server.quit()
-                print("✅ SMTP email sent successfully (TLS port 587)")
+                print("[OK] SMTP email sent successfully (TLS port 587)")
                 return True
             except Exception as e2:
-                print(f"❌ TLS also failed: {e2}")
+                print(f"[ERROR] TLS also failed: {e2}")
                 return False
 
     except Exception as e:
-        print(f"❌ ERROR: {e}")
+        print(f"[ERROR] ERROR: {e}")
         return False
 
 if __name__ == "__main__":
@@ -139,13 +139,13 @@ if __name__ == "__main__":
 
     print("\n" + "=" * 60)
     if resend_success or smtp_success:
-        print("✅ EMAIL SENDING WORKING")
+        print("[OK] EMAIL SENDING WORKING")
         if resend_success:
             print("   Method: Resend API (recommended)")
         elif smtp_success:
             print("   Method: SMTP (fallback)")
     else:
-        print("❌ EMAIL SENDING FAILED")
+        print("[ERROR] EMAIL SENDING FAILED")
         print("\nTroubleshooting:")
         print("1. Set RESEND_API_KEY for Resend API")
         print("2. Or set SMTP_USER and SMTP_PASS for Gmail")

@@ -14,7 +14,7 @@ load_dotenv()
 
 def generate_linkedin_content():
     """Generate LinkedIn post content"""
-    print("🔍 Testing LinkedIn Content Generation...")
+    print("[TEST] Testing LinkedIn Content Generation...")
 
     # Sample business context
     business_context = {
@@ -28,30 +28,30 @@ def generate_linkedin_content():
     content_templates = [
         {
             "type": "achievement",
-            "content": f"""🎉 Exciting milestone achieved!
+            "content": f"""Exciting milestone achieved!
 
 We've just completed our AI Employee system with 100% of all hackathon requirements met - Bronze, Silver, Gold, and Platinum tiers!
 
 Key achievements:
-✅ 24/7 cloud deployment
-✅ 15 agent skills implemented
-✅ Real-time email monitoring
-✅ Human-in-the-loop approval workflow
+- 24/7 cloud deployment
+- 15 agent skills implemented
+- Real-time email monitoring
+- Human-in-the-loop approval workflow
 
 This autonomous system can now handle business operations around the clock.
 
 #AI #Automation #Innovation #TechAchievement
 
-What's your biggest automation challenge? Let's discuss in the comments! 👇
+What's your biggest automation challenge? Let's discuss in the comments!
 """
         },
         {
             "type": "educational",
-            "content": f"""💡 Did you know?
+            "content": f"""Did you know?
 
 An AI Employee can work 8,760 hours per year vs a human's 2,000 hours.
 
-That's a 4.4x productivity multiplier! 🚀
+That's a 4.4x productivity multiplier!
 
 Cost per task drops from ~$5 to ~$0.50 - an 85-90% cost saving.
 
@@ -59,31 +59,31 @@ This is why autonomous AI systems are transforming business operations in 2026.
 
 #AIEmployee #BusinessAutomation #Productivity
 
-Are you leveraging AI in your business? Share your experience! 💬
+Are you leveraging AI in your business? Share your experience!
 """
         },
         {
             "type": "technical",
-            "content": f"""🔧 Tech Stack Spotlight
+            "content": f"""Tech Stack Spotlight
 
 Building an autonomous AI Employee requires:
 
-🧠 Claude Code - Reasoning engine
-📝 Obsidian - Knowledge base
-🔄 Git - Offline coordination
-🔌 MCP Servers - External actions
-☁️ Cloud Deployment - 24/7 operation
+- Claude Code - Reasoning engine
+- Obsidian - Knowledge base
+- Git - Offline coordination
+- MCP Servers - External actions
+- Cloud Deployment - 24/7 operation
 
 The result? A system that monitors emails, creates drafts, and handles approvals autonomously.
 
 #TechStack #AIEngineering #CloudComputing
 
-What's your favorite AI tool? Drop it below! 👇
+What's your favorite AI tool? Drop it below!
 """
         }
     ]
 
-    print("\n📝 Generated LinkedIn Content:\n")
+    print("\n[CONTENT] Generated LinkedIn Content:\n")
 
     for i, template in enumerate(content_templates, 1):
         print(f"{'='*60}")
@@ -96,7 +96,7 @@ What's your favorite AI tool? Drop it below! 👇
 
 def create_approval_file(content_templates):
     """Create approval files for LinkedIn posts"""
-    print("🔍 Creating Approval Files...")
+    print("[TEST] Creating Approval Files...")
 
     vault_path = Path("AI_Employee_Vault/Pending_Approval")
     vault_path.mkdir(parents=True, exist_ok=True)
@@ -138,14 +138,14 @@ Modify the content above and keep in Pending_Approval for review.
 
         filepath.write_text(approval_content, encoding='utf-8')
         created_files.append(filename)
-        print(f"✅ Created: {filename}")
+        print(f"[OK] Created: {filename}")
 
     return created_files
 
 def show_usage_instructions():
     """Show how to use the generated content"""
     print("\n" + "="*60)
-    print("📋 NEXT STEPS")
+    print("[LIST] NEXT STEPS")
     print("="*60)
     print("""
 1. Review the generated content above
@@ -176,6 +176,6 @@ if __name__ == "__main__":
     show_usage_instructions()
 
     print("\n" + "=" * 60)
-    print(f"✅ CONTENT GENERATION COMPLETE")
+    print(f"[OK] CONTENT GENERATION COMPLETE")
     print(f"   Created {len(created_files)} approval files")
     print("=" * 60)

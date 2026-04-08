@@ -39,21 +39,21 @@ def check_environment():
     for var, desc in required.items():
         value = os.getenv(var)
         if value:
-            print(f"  ✅ {var}: {desc}")
+            print(f"  [OK] {var}: {desc}")
         else:
-            print(f"  ❌ {var}: {desc} - NOT SET")
+            print(f"  [MISSING] {var}: {desc} - NOT SET")
             all_set = False
 
     print("\nOptional Variables:")
     for var, desc in optional.items():
         value = os.getenv(var)
         if value:
-            print(f"  ✅ {var}: {desc}")
+            print(f"  [OK] {var}: {desc}")
         else:
-            print(f"  ⚠️  {var}: {desc} - NOT SET (optional)")
+            print(f"  [SKIP] {var}: {desc} - NOT SET (optional)")
 
     if not all_set:
-        print("\n❌ Missing required environment variables!")
+        print("\n[ERROR] Missing required environment variables!")
         print("\nSet them with:")
         print("  export SMTP_USER='your-email@gmail.com'")
         print("  export SMTP_PASS='your-app-password'")
@@ -72,7 +72,7 @@ def run_test(script_name, description):
     script_path = Path(__file__).parent / script_name
 
     if not script_path.exists():
-        print(f"❌ Test script not found: {script_name}")
+        print(f"[ERROR] Test script not found: {script_name}")
         return False
 
     try:
@@ -83,7 +83,7 @@ def run_test(script_name, description):
         )
         return result.returncode == 0
     except Exception as e:
-        print(f"❌ Error running test: {e}")
+        print(f"[ERROR] Error running test: {e}")
         return False
 
 def show_summary(results):
@@ -95,7 +95,7 @@ def show_summary(results):
     failed = total - passed
 
     for test_name, success in results.items():
-        status = "✅ PASSED" if success else "❌ FAILED"
+        status = "[OK] PASSED" if success else "[ERROR] FAILED"
         print(f"  {status}: {test_name}")
 
     print(f"\nTotal: {total} tests")
@@ -103,10 +103,10 @@ def show_summary(results):
     print(f"Failed: {failed}")
 
     if failed == 0:
-        print("\n🎉 ALL TESTS PASSED!")
+        print("\n[SUCCESS] ALL TESTS PASSED!")
         return True
     else:
-        print(f"\n⚠️  {failed} test(s) failed")
+        print(f"\n[WARN]  {failed} test(s) failed")
         return False
 
 def main():
@@ -117,7 +117,7 @@ def main():
 
     # Check environment
     if not check_environment():
-        print("\n❌ Environment check failed. Please set required variables.")
+        print("\n[ERROR] Environment check failed. Please set required variables.")
         return 1
 
     # Run tests
@@ -146,7 +146,7 @@ def main():
     )
 
     # Test 4: LinkedIn Posting (dry run)
-    print("\nℹ️  Setting DRY_RUN=true for LinkedIn posting test")
+    print("\n[INFO]  Setting DRY_RUN=true for LinkedIn posting test")
     os.environ['DRY_RUN'] = 'true'
     results['LinkedIn Posting'] = run_test(
         'test_linkedin_poster.py',

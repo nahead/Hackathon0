@@ -16,14 +16,14 @@ load_dotenv()
 
 def test_gmail_connection():
     """Test Gmail IMAP connection"""
-    print("🔍 Testing Gmail Connection...")
+    print("[TEST] Testing Gmail Connection...")
 
     # Get credentials from environment
     smtp_user = os.getenv('SMTP_USER')
     smtp_pass = os.getenv('SMTP_PASS')
 
     if not smtp_user or not smtp_pass:
-        print("❌ ERROR: SMTP_USER and SMTP_PASS environment variables not set")
+        print("[ERROR] ERROR: SMTP_USER and SMTP_PASS environment variables not set")
         print("\nSet them with:")
         print("  export SMTP_USER='your-email@gmail.com'")
         print("  export SMTP_PASS='your-app-password'")
@@ -33,20 +33,20 @@ def test_gmail_connection():
         # Connect to Gmail
         mail = imaplib.IMAP4_SSL('imap.gmail.com')
         mail.login(smtp_user, smtp_pass)
-        print(f"✅ Connected to Gmail as: {smtp_user}")
+        print(f"[OK] Connected to Gmail as: {smtp_user}")
 
         # Select inbox
         mail.select('inbox')
-        print("✅ Inbox selected")
+        print("[OK] Inbox selected")
 
         # Search for unread emails
         status, messages = mail.search(None, 'UNSEEN')
         email_ids = messages[0].split()
 
-        print(f"\n📧 Found {len(email_ids)} unread emails")
+        print(f"\n[EMAIL] Found {len(email_ids)} unread emails")
 
         if len(email_ids) > 0:
-            print("\n📬 Recent unread emails:")
+            print("\n[INBOX] Recent unread emails:")
             # Show first 5 unread emails
             for email_id in email_ids[:5]:
                 status, msg_data = mail.fetch(email_id, '(RFC822)')
@@ -63,16 +63,16 @@ def test_gmail_connection():
         mail.close()
         mail.logout()
 
-        print("\n✅ Email detection test PASSED")
+        print("\n[OK] Email detection test PASSED")
         return True
 
     except Exception as e:
-        print(f"❌ ERROR: {e}")
+        print(f"[ERROR] ERROR: {e}")
         return False
 
 def test_create_approval_file():
     """Test creating approval file in vault"""
-    print("\n🔍 Testing Approval File Creation...")
+    print("\n[TEST] Testing Approval File Creation...")
 
     vault_path = Path("AI_Employee_Vault/Pending_Approval")
     vault_path.mkdir(parents=True, exist_ok=True)
@@ -104,7 +104,7 @@ Move this file to AI_Employee_Vault/Rejected/ folder or delete it.
 """
 
     filepath.write_text(content, encoding='utf-8')
-    print(f"✅ Created approval file: {filename}")
+    print(f"[OK] Created approval file: {filename}")
     print(f"   Location: {filepath}")
 
     return True
@@ -120,9 +120,9 @@ if __name__ == "__main__":
         test_create_approval_file()
 
         print("\n" + "=" * 60)
-        print("✅ ALL TESTS PASSED")
+        print("[OK] ALL TESTS PASSED")
         print("=" * 60)
     else:
         print("\n" + "=" * 60)
-        print("❌ TESTS FAILED")
+        print("[ERROR] TESTS FAILED")
         print("=" * 60)
