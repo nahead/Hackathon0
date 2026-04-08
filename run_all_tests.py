@@ -132,24 +132,30 @@ def main():
         'TEST 1: EMAIL DETECTION'
     )
 
-    # Test 2: Email Sending
+    # Test 2: Process Needs_Action
+    results['Process Needs_Action'] = run_test(
+        'process_needs_action.py',
+        'TEST 2: PROCESS NEEDS_ACTION'
+    )
+
+    # Test 3: Email Sending
     results['Email Sending'] = run_test(
         'test_email_sender.py',
-        'TEST 2: EMAIL SENDING'
+        'TEST 3: EMAIL SENDING'
     )
 
-    # Test 3: LinkedIn Content Creation
+    # Test 4: LinkedIn Content Creation
     results['LinkedIn Content'] = run_test(
         'test_linkedin_content.py',
-        'TEST 3: LINKEDIN CONTENT CREATION'
+        'TEST 4: LINKEDIN CONTENT CREATION'
     )
 
-    # Test 4: LinkedIn Posting (dry run)
+    # Test 5: LinkedIn Posting (dry run)
     print("\n[INFO]  Setting DRY_RUN=true for LinkedIn posting test")
     os.environ['DRY_RUN'] = 'true'
     results['LinkedIn Posting'] = run_test(
         'test_linkedin_poster.py',
-        'TEST 4: LINKEDIN POSTING (DRY RUN)'
+        'TEST 5: LINKEDIN POSTING (DRY RUN)'
     )
 
     # Show summary
