@@ -746,8 +746,8 @@ class CloudGmailWatcher:
 
     def __init__(self, vault_path):
         self.vault_path = Path(vault_path)
-        self.pending_approval_path = self.vault_path / "Pending_Approval"
-        self.pending_approval_path.mkdir(parents=True, exist_ok=True)
+        self.needs_action_path = self.vault_path / "Needs_Action"
+        self.needs_action_path.mkdir(parents=True, exist_ok=True)
 
         self.email = os.getenv('SMTP_USER')
         self.password = os.getenv('SMTP_PASS')
@@ -807,7 +807,7 @@ class CloudGmailWatcher:
 
                 logger.info(f"📨 Processing: {subject[:50]}...")
 
-                self.create_approval_file(subject, sender, content, email_id)
+                self.create_action_file(subject, sender, content, email_id)
 
         except Exception as e:
             logger.error(f"❌ Error processing email: {e}")
@@ -828,52 +828,50 @@ class CloudGmailWatcher:
 
         return content[:1000]  # Limit content length
 
-    def create_approval_file(self, subject, sender, content, email_id):
-        """Create approval file in vault"""
-        # Ensure Pending_Approval folder exists
-        self.pending_approval_path.mkdir(parents=True, exist_ok=True)
+    def create_action_file(self, subject, sender, content, email_id):
+        """Create action file in Needs_Action folder"""
+        # Ensure Needs_Action folder exists
+        self.needs_action_path.mkdir(parents=True, exist_ok=True)
 
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        filename = f"EMAIL_CLOUD_{timestamp}.md"
-        filepath = self.pending_approval_path / filename
+        filename = f"EMAIL_DETECTED_{timestamp}.md"
+        filepath = self.needs_action_path / filename
 
-        approval_content = f"""---
-type: email_response_approval
-email_id: {email_id.decode() if isinstance(email_id, bytes) else email_id}
+        action_content = f"""---
+type: email_action
 sender: {sender}
 subject: {subject}
-timestamp: {datetime.now().isoformat()}
+received: {datetime.now().isoformat()}
+status: needs_action
+priority: normal
+email_id: {email_id.decode() if isinstance(email_id, bytes) else email_id}
 ---
 
-# Email Response Approval Required
+## Email Details
+A new email has been detected and needs processing.
 
-## Original Email:
 **From:** {sender}
 **Subject:** {subject}
+**Received:** {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+
 **Content:**
 ```
 {content}
 ```
 
-## Proposed Response:
-```
-Thank you for your email.
+## Next Steps
+1. System will analyze this email
+2. Generate appropriate response
+3. Create approval file in Pending_Approval/
+4. Wait for human approval
+5. Send response via SMTP
 
-I have received your message and will review it carefully. I will respond with the appropriate information within 24 hours.
-
-Best regards,
-AI Employee System
-```
-
-## Instructions:
-1. Review the proposed response
-2. Edit if necessary
-3. Move to Approved/ folder to send
-4. Or move to Archive/ to skip
+## Workflow
+Needs_Action -> Processing -> Pending_Approval -> Approved -> Done
 """
 
-        filepath.write_text(approval_content, encoding='utf-8')
-        logger.info(f"✅ Created approval file: {filename}")
+        filepath.write_text(action_content, encoding='utf-8')
+        logger.info(f"✅ Created action file: {filename}")
 
 class CloudVaultSync:
     """Vault synchronization with GitHub"""
