@@ -52,11 +52,12 @@ export LINKEDIN_PERSON_URN='urn:li:person:your_id'
 python run_all_tests.py
 ```
 
-This will run all 4 tests in sequence:
+This will run all 5 tests in sequence:
 1. Email Detection
-2. Email Sending
-3. LinkedIn Content Creation
-4. LinkedIn Posting (dry run)
+2. Process Needs_Action
+3. Email Sending
+4. LinkedIn Content Creation
+5. LinkedIn Posting (dry run)
 
 ### Individual Tests
 
@@ -68,20 +69,51 @@ python test_email_detection.py
 
 **What it does:**
 - Connects to Gmail via IMAP
-- Lists unread emails
-- Creates approval file in vault
+- Detects unread emails
+- Creates action files in Needs_Action/ with real email data
 
 **Expected output:**
 ```
-✅ Connected to Gmail as: your-email@gmail.com
-✅ Inbox selected
-📧 Found X unread emails
-✅ Email detection test PASSED
+[OK] Connected to Gmail as: your-email@gmail.com
+[OK] Inbox selected
+[EMAIL] Found X unread emails
+[OK] Created: EMAIL_DETECTED_20260408_115050.md
+[OK] ALL TESTS PASSED
 ```
+
+**Files created:**
+- `AI_Employee_Vault/Needs_Action/EMAIL_DETECTED_*.md`
 
 ---
 
-#### Test 2: Email Sending
+#### Test 2: Process Needs_Action
+
+```bash
+python process_needs_action.py
+```
+
+**What it does:**
+- Reads action files from Needs_Action/
+- Generates appropriate email responses based on content
+- Creates approval files in Pending_Approval/
+- Moves processed files to Processing/
+
+**Expected output:**
+```
+[PROCESS] Processing: EMAIL_DETECTED_20260408_115050.md
+[INFO] From: sender@example.com
+[INFO] Subject: urgent payment
+[OK] Created approval file: EMAIL_RESPONSE_20260408_115756.md
+[OK] Moved to Processing: EMAIL_DETECTED_20260408_115050.md
+[OK] PROCESSED 1 FILE(S)
+```
+
+**Files created:**
+- `AI_Employee_Vault/Pending_Approval/EMAIL_RESPONSE_*.md`
+
+---
+
+#### Test 3: Email Sending
 
 ```bash
 python test_email_sender.py
@@ -99,7 +131,7 @@ python test_email_sender.py
 
 ---
 
-#### Test 3: LinkedIn Content Creation
+#### Test 4: LinkedIn Content Creation
 
 ```bash
 python test_linkedin_content.py
@@ -112,11 +144,11 @@ python test_linkedin_content.py
 
 **Expected output:**
 ```
-📝 Generated LinkedIn Content:
+[CONTENT] Generated LinkedIn Content:
 POST 1: ACHIEVEMENT
 POST 2: EDUCATIONAL
 POST 3: TECHNICAL
-✅ Created: LINKEDIN_POST_20260407_123456_1.md
+[OK] Created: LINKEDIN_POST_20260407_123456_1.md
 ```
 
 **Files created:**
@@ -124,7 +156,7 @@ POST 3: TECHNICAL
 
 ---
 
-#### Test 4: LinkedIn Posting
+#### Test 5: LinkedIn Posting
 
 ```bash
 # Dry run (no actual posting)
@@ -141,8 +173,8 @@ DRY_RUN=false python test_linkedin_poster.py
 
 **Expected output (dry run):**
 ```
-⚠️ DRY RUN MODE - No actual posting
-✅ Dry run successful - content validated
+[WARN] DRY RUN MODE - No actual posting
+[OK] Dry run successful - content validated
 ```
 
 ---
@@ -229,22 +261,41 @@ DRY_RUN=false python test_linkedin_poster.py
 ### Successful Test Run
 
 ```
-✅ Email Detection: PASSED
-✅ Email Sending: PASSED
-✅ LinkedIn Content: PASSED
-✅ LinkedIn Posting: PASSED (DRY RUN)
+[OK] PASSED: Email Detection
+[OK] PASSED: Process Needs_Action
+[OK] PASSED: Email Sending
+[OK] PASSED: LinkedIn Content
+[OK] PASSED: LinkedIn Posting (DRY RUN)
 
-🎉 ALL TESTS PASSED!
+ALL TESTS PASSED!
 ```
 
 ### Files Created
 
 ```
 AI_Employee_Vault/
+├── Needs_Action/
+│   └── EMAIL_DETECTED_*.md (created by test 1)
+├── Processing/
+│   └── EMAIL_DETECTED_*.md (moved here after processing)
 ├── Pending_Approval/
-│   ├── EMAIL_TEST_20260407_123456.md
-│   ├── LINKEDIN_POST_20260407_123456_1.md
-│   ├── LINKEDIN_POST_20260407_123456_2.md
+│   ├── EMAIL_RESPONSE_*.md (created by test 2)
+│   ├── LINKEDIN_POST_*_1.md
+│   ├── LINKEDIN_POST_*_2.md
+│   └── LINKEDIN_POST_*_3.md
+├── Approved/
+│   └── (move files here to approve)
+└── Done/
+    └── (completed tasks moved here)
+```
+
+### Complete Workflow
+
+1. **Email Detection** → Creates action files in `Needs_Action/`
+2. **Process Needs_Action** → Generates responses, creates approval files in `Pending_Approval/`
+3. **Human Review** → Review and approve files in `Pending_Approval/`
+4. **Email Sending** → Sends approved responses from `Approved/`
+5. **Completion** → Moves sent emails to `Done/`
 │   └── LINKEDIN_POST_20260407_123456_3.md
 ├── Approved/
 │   └── (move files here to approve)
@@ -264,9 +315,17 @@ The system is already running 24/7 on the cloud:
 
 **Cloud Features:**
 - ✅ Email monitoring (24/7)
+- ✅ Automated email processing (Needs_Action → Pending_Approval)
+- ✅ Response generation based on email content
 - ✅ Real-time log display
-- ✅ Email detection and display
 - ✅ Health monitoring
+
+**Cloud Workflow:**
+1. Detects emails every 5 minutes
+2. Creates action files in Needs_Action/
+3. Automatically processes and creates approval files
+4. Waits for human approval
+5. Sends approved responses via SMTP
 
 ---
 
