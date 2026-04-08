@@ -138,24 +138,30 @@ def main():
         'TEST 2: PROCESS NEEDS_ACTION'
     )
 
-    # Test 3: Email Sending
-    results['Email Sending'] = run_test(
+    # Test 3: Email Sending (SMTP Test)
+    results['Email Sending (SMTP Test)'] = run_test(
         'test_email_sender.py',
-        'TEST 3: EMAIL SENDING'
+        'TEST 3: EMAIL SENDING (SMTP TEST)'
     )
 
-    # Test 4: LinkedIn Content Creation
+    # Test 4: Send Approved Emails
+    results['Send Approved Emails'] = run_test(
+        'send_approved_emails.py',
+        'TEST 4: SEND APPROVED EMAILS'
+    )
+
+    # Test 5: LinkedIn Content Creation
     results['LinkedIn Content'] = run_test(
         'test_linkedin_content.py',
-        'TEST 4: LINKEDIN CONTENT CREATION'
+        'TEST 5: LINKEDIN CONTENT CREATION'
     )
 
-    # Test 5: LinkedIn Posting (dry run)
+    # Test 6: LinkedIn Posting (dry run)
     print("\n[INFO]  Setting DRY_RUN=true for LinkedIn posting test")
     os.environ['DRY_RUN'] = 'true'
     results['LinkedIn Posting'] = run_test(
         'test_linkedin_poster.py',
-        'TEST 5: LINKEDIN POSTING (DRY RUN)'
+        'TEST 6: LINKEDIN POSTING (DRY RUN)'
     )
 
     # Show summary
@@ -166,8 +172,9 @@ def main():
     print("""
 1. Review the test results above
 2. Check AI_Employee_Vault/Pending_Approval/ for generated content
-3. To approve content:
+3. To approve email responses:
    - Move files from Pending_Approval/ to Approved/
+   - Run: python send_approved_emails.py
 4. To post to LinkedIn for real:
    - Set LINKEDIN_ACCESS_TOKEN and LINKEDIN_PERSON_URN
    - Run: DRY_RUN=false python test_linkedin_poster.py
@@ -175,6 +182,7 @@ def main():
 For cloud deployment:
    - The system is already running at: https://ai-employee-cloud.onrender.com
    - Check live logs at: https://ai-employee-cloud.onrender.com
+   - Cloud automatically processes and sends approved emails every 5 minutes
 """)
 
     return 0 if all_passed else 1
