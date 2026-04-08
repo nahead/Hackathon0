@@ -9,7 +9,7 @@ services:
     region: oregon
     plan: free
     buildCommand: pip install -r requirements.txt
-    startCommand: python railway_all_in_one.py
+    startCommand: python implementation/railway_all_in_one.py
     envVars:
       - key: AGENT_TYPE
         value: cloud
