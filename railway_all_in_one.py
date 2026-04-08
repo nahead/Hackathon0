@@ -627,64 +627,18 @@ class HealthHandler(BaseHTTPRequestHandler):
         pass
 
 class CloudEmailSender:
-    """Email sending for cloud deployment - supports Resend API and SMTP"""
+    """Email sending for cloud deployment - SMTP only"""
 
     def __init__(self):
         self.smtp_user = os.getenv('SMTP_USER')
         self.smtp_pass = os.getenv('SMTP_PASS')
-        self.resend_api_key = os.getenv('RESEND_API_KEY')
 
-        if not self.resend_api_key and not (self.smtp_user and self.smtp_pass):
-            logger.warning("⚠️ No email credentials configured (Resend or SMTP)")
+        if not (self.smtp_user and self.smtp_pass):
+            logger.warning("⚠️ SMTP credentials not configured")
             self.enabled = False
         else:
             self.enabled = True
-            if self.resend_api_key:
-                logger.info("✅ Resend API configured")
-            else:
-                logger.info("✅ SMTP credentials configured")
-
-    def send_email_via_resend(self, to_email, subject, body):
-        """Send email via Resend API (HTTP-based, works on all platforms)"""
-        try:
-            url = "https://api.resend.com/emails"
-
-            headers = {
-                "Authorization": f"Bearer {self.resend_api_key}",
-                "Content-Type": "application/json"
-            }
-
-            # Use Resend's verified domain for sending
-            # User can add custom domain later for branded emails
-            from_email = "AI Employee <onboarding@resend.dev>"
-            if self.smtp_user and '@resend.dev' not in self.smtp_user:
-                # Add reply-to if user has their own email
-                reply_to = self.smtp_user
-            else:
-                reply_to = None
-
-            data = {
-                "from": from_email,
-                "to": [to_email],
-                "subject": subject,
-                "text": body
-            }
-
-            if reply_to:
-                data["reply_to"] = reply_to
-
-            response = requests.post(url, headers=headers, json=data, timeout=10)
-
-            if response.status_code == 200:
-                logger.info(f"✅ Email sent to: {to_email} (via Resend API)")
-                return True
-            else:
-                # Silent failure - no warning logs
-                return False
-
-        except Exception as e:
-            # Silent failure - no warning logs
-            return False
+            logger.info("✅ SMTP credentials configured")
 
     def send_email_via_smtp(self, to_email, subject, body):
         """Send email via SMTP - tries SSL port 465 first, then TLS port 587"""
@@ -725,17 +679,11 @@ class CloudEmailSender:
             return False
 
     def send_email(self, to_email, subject, body):
-        """Send email - tries Resend API first, falls back to SMTP"""
+        """Send email via SMTP"""
         if not self.enabled:
             return False
 
-        # Try Resend API first (works on all platforms)
-        if self.resend_api_key:
-            success = self.send_email_via_resend(to_email, subject, body)
-            if success:
-                return True
-
-        # Fallback to SMTP (silent if fails)
+        # Send via SMTP
         if self.smtp_user and self.smtp_pass:
             return self.send_email_via_smtp(to_email, subject, body)
 
