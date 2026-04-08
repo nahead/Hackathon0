@@ -295,8 +295,7 @@ ls -la AI_Employee_Vault/.claude/skills/
 
 ### 🔧 Setup Requirements
 All core functionality works out of the box. Optional features require:
-- Gmail credentials (for email monitoring)
-- Resend API key (for email sending)
+- Gmail credentials (for email monitoring and sending)
 - Social media API keys (for posting - optional)
 
 ---
@@ -339,9 +338,9 @@ Novel approach for offline agent coordination using vault sync
 ## 🚨 Known Limitations
 
 ### SMTP on Render.com Free Tier
-- **Issue:** Outbound SMTP ports blocked by platform
-- **Solution:** Using Resend API for email sending
-- **Status:** Email detection working, sending via API
+- **Issue:** Outbound SMTP ports may be blocked by platform
+- **Solution:** Using SMTP via Gmail (ports 465/587)
+- **Status:** Email detection and sending working via SMTP
 
 ### Social Media API Credentials
 - **Issue:** Requires external API setup (Facebook, Twitter, Instagram)

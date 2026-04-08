@@ -29,7 +29,6 @@ def check_environment():
     }
 
     optional = {
-        'RESEND_API_KEY': 'Resend API key (for email sending)',
         'LINKEDIN_ACCESS_TOKEN': 'LinkedIn API token (for posting)',
         'LINKEDIN_PERSON_URN': 'LinkedIn person URN (for posting)',
     }

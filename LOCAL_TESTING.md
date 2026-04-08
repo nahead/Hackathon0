@@ -10,15 +10,11 @@ Complete guide for testing the AI Employee system locally.
 
 ### Required Credentials
 
-1. **Gmail Account** (for email detection)
+1. **Gmail Account** (for email detection and sending)
    - Gmail address
    - App Password (not regular password)
 
-2. **Resend API** (for email sending - optional)
-   - Free account at https://resend.com
-   - API key
-
-3. **LinkedIn API** (for posting - optional)
+2. **LinkedIn API** (for posting - optional)
    - Developer account at https://www.linkedin.com/developers/
    - Access token
 
@@ -29,12 +25,9 @@ Complete guide for testing the AI Employee system locally.
 ### 1. Set Environment Variables
 
 ```bash
-# Required for email detection
+# Required for email detection and sending
 export SMTP_USER='your-email@gmail.com'
 export SMTP_PASS='your-app-password'
-
-# Optional for email sending
-export RESEND_API_KEY='re_your_api_key'
 
 # Optional for LinkedIn posting
 export LINKEDIN_ACCESS_TOKEN='your_linkedin_token'
@@ -48,13 +41,6 @@ export LINKEDIN_PERSON_URN='urn:li:person:your_id'
 3. Click "Generate"
 4. Copy the 16-character password
 5. Use this password (NOT your regular Gmail password)
-
-### 3. Get Resend API Key (Optional)
-
-1. Sign up at: https://resend.com
-2. Go to API Keys section
-3. Create new API key
-4. Copy the key (starts with `re_`)
 
 ---
 
@@ -102,14 +88,13 @@ python test_email_sender.py
 ```
 
 **What it does:**
-- Tests Resend API email sending
-- Falls back to SMTP if Resend not available
+- Tests SMTP email sending via Gmail
 - Sends test email to your inbox
 
 **Expected output:**
 ```
-✅ Email sent successfully!
-📬 Check your inbox: your-email@gmail.com
+[OK] Email sent successfully via SMTP (SSL port 465)
+[INBOX] Check your inbox: your-email@gmail.com
 ```
 
 ---
@@ -224,12 +209,9 @@ DRY_RUN=false python test_linkedin_poster.py
 ### Email Sending Issues
 
 **Problem:** "SMTP connection failed"
-- **Solution:** Use Resend API instead (more reliable)
-- **Get key:** https://resend.com/api-keys
-
-**Problem:** "Resend API 403 error"
-- **Solution:** Use verified domain `onboarding@resend.dev`
-- **Note:** Can't send from `@gmail.com` without domain verification
+- **Solution:** Check Gmail App Password is correct
+- **Solution:** Try both SSL (port 465) and TLS (port 587)
+- **Solution:** Verify 2-factor authentication is enabled on Gmail
 
 ### LinkedIn Issues
 
