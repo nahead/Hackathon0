@@ -52,12 +52,13 @@ export LINKEDIN_PERSON_URN='urn:li:person:your_id'
 python run_all_tests.py
 ```
 
-This will run all 5 tests in sequence:
+This will run all 6 tests in sequence:
 1. Email Detection
 2. Process Needs_Action
-3. Email Sending
-4. LinkedIn Content Creation
-5. LinkedIn Posting (dry run)
+3. Email Sending (SMTP Test)
+4. Send Approved Emails
+5. LinkedIn Content Creation
+6. LinkedIn Posting (dry run)
 
 ### Individual Tests
 
@@ -113,7 +114,7 @@ python process_needs_action.py
 
 ---
 
-#### Test 3: Email Sending
+#### Test 3: Email Sending (SMTP Test)
 
 ```bash
 python test_email_sender.py
@@ -121,7 +122,7 @@ python test_email_sender.py
 
 **What it does:**
 - Tests SMTP email sending via Gmail
-- Sends test email to your inbox
+- Sends test email to your own inbox (not to clients)
 
 **Expected output:**
 ```
@@ -131,7 +132,33 @@ python test_email_sender.py
 
 ---
 
-#### Test 4: LinkedIn Content Creation
+#### Test 4: Send Approved Emails
+
+```bash
+python send_approved_emails.py
+```
+
+**What it does:**
+- Reads approved email responses from Approved/ folder
+- Sends responses to actual recipients (clients)
+- Moves sent emails to Done/ folder
+
+**Expected output:**
+```
+[INBOX] Found 1 approved email(s)
+[SEND] Sending to: client@example.com
+[SEND] Subject: Re: urgent payment
+[OK] Email sent via SMTP (SSL port 465)
+[OK] Moved to Done: EMAIL_RESPONSE_20260408_121417.md
+[OK] SENT 1 EMAIL(S)
+```
+
+**Files moved:**
+- `AI_Employee_Vault/Approved/EMAIL_RESPONSE_*.md` → `Done/`
+
+---
+
+#### Test 5: LinkedIn Content Creation
 
 ```bash
 python test_linkedin_content.py
@@ -156,7 +183,7 @@ POST 3: TECHNICAL
 
 ---
 
-#### Test 5: LinkedIn Posting
+#### Test 6: LinkedIn Posting
 
 ```bash
 # Dry run (no actual posting)
@@ -263,7 +290,8 @@ DRY_RUN=false python test_linkedin_poster.py
 ```
 [OK] PASSED: Email Detection
 [OK] PASSED: Process Needs_Action
-[OK] PASSED: Email Sending
+[OK] PASSED: Email Sending (SMTP Test)
+[OK] PASSED: Send Approved Emails
 [OK] PASSED: LinkedIn Content
 [OK] PASSED: LinkedIn Posting (DRY RUN)
 
@@ -293,15 +321,9 @@ AI_Employee_Vault/
 
 1. **Email Detection** → Creates action files in `Needs_Action/`
 2. **Process Needs_Action** → Generates responses, creates approval files in `Pending_Approval/`
-3. **Human Review** → Review and approve files in `Pending_Approval/`
-4. **Email Sending** → Sends approved responses from `Approved/`
+3. **Human Review** → Review and approve files in `Pending_Approval/`, move to `Approved/`
+4. **Send Approved Emails** → Sends approved responses to actual clients
 5. **Completion** → Moves sent emails to `Done/`
-│   └── LINKEDIN_POST_20260407_123456_3.md
-├── Approved/
-│   └── (move files here to approve)
-└── Done/
-    └── (completed tasks moved here)
-```
 
 ---
 
