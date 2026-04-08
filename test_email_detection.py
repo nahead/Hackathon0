@@ -70,42 +70,50 @@ def test_gmail_connection():
         print(f"[ERROR] ERROR: {e}")
         return False
 
-def test_create_approval_file():
-    """Test creating approval file in vault"""
-    print("\n[TEST] Testing Approval File Creation...")
+def test_create_action_file():
+    """Test creating action file in Needs_Action (proper workflow)"""
+    print("\n[TEST] Testing Action File Creation in Needs_Action...")
 
-    vault_path = Path("AI_Employee_Vault/Pending_Approval")
+    vault_path = Path("AI_Employee_Vault/Needs_Action")
     vault_path.mkdir(parents=True, exist_ok=True)
 
-    # Create test approval file
+    # Create action file (not approval file)
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-    filename = f"EMAIL_TEST_{timestamp}.md"
+    filename = f"EMAIL_DETECTED_{timestamp}.md"
     filepath = vault_path / filename
 
     content = f"""---
-type: email_approval
-sender: test@example.com
-subject: Test Email
+type: email_action
+sender: detected-email@example.com
+subject: New Email Detected
 received: {datetime.now().isoformat()}
-status: pending
+status: needs_action
+priority: normal
 ---
 
-## Email Body
-This is a test email for approval workflow.
+## Email Details
+A new email has been detected and needs processing.
 
-## Proposed Response
-Thank you for your email. This is an automated test response.
+**From:** detected-email@example.com
+**Subject:** New Email Detected
+**Received:** {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
 
-## To Approve
-Move this file to AI_Employee_Vault/Approved/ folder.
+## Next Steps
+1. System will analyze this email
+2. Generate appropriate response
+3. Create approval file in Pending_Approval/
+4. Wait for human approval
+5. Send response via SMTP
 
-## To Reject
-Move this file to AI_Employee_Vault/Rejected/ folder or delete it.
+## Workflow
+Needs_Action → Processing → Pending_Approval → Approved → Done
 """
 
     filepath.write_text(content, encoding='utf-8')
-    print(f"[OK] Created approval file: {filename}")
+    print(f"[OK] Created action file: {filename}")
     print(f"   Location: {filepath}")
+    print(f"\n[INFO] This file should be processed by the system")
+    print(f"   System will create approval file in Pending_Approval/")
 
     return True
 
@@ -116,12 +124,18 @@ if __name__ == "__main__":
 
     # Test Gmail connection
     if test_gmail_connection():
-        # Test approval file creation
-        test_create_approval_file()
+        # Test action file creation (proper workflow)
+        test_create_action_file()
 
         print("\n" + "=" * 60)
         print("[OK] ALL TESTS PASSED")
         print("=" * 60)
+        print("\n[INFO] Workflow:")
+        print("  1. Email detected -> Needs_Action/")
+        print("  2. System processes -> generates response")
+        print("  3. Creates approval file -> Pending_Approval/")
+        print("  4. Human approves -> Approved/")
+        print("  5. System sends email -> Done/")
     else:
         print("\n" + "=" * 60)
         print("[ERROR] TESTS FAILED")
