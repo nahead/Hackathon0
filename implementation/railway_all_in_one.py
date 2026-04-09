@@ -1192,13 +1192,63 @@ Needs_Action -> Processing -> **Pending_Approval** -> Approved -> Done
         return True
 
     def commit_and_push_changes(self):
-        """Files are automatically tracked by main repository"""
+        """Commit and push vault changes back to GitHub"""
         if not self.enabled:
             return True
 
-        # Vault is part of main repo - changes are automatically tracked
-        logger.info("✅ Vault changes tracked by main repository")
-        return True
+        try:
+            # Check if there are any changes
+            result = subprocess.run(
+                ['git', 'status', '--porcelain'],
+                cwd=self.vault_path.parent,
+                capture_output=True,
+                text=True,
+                timeout=10
+            )
+
+            if not result.stdout.strip():
+                # No changes to commit
+                return True
+
+            logger.info("📝 Detected vault changes, committing...")
+
+            # Add all changes in vault
+            subprocess.run(
+                ['git', 'add', 'AI_Employee_Vault/'],
+                cwd=self.vault_path.parent,
+                check=True,
+                timeout=10
+            )
+
+            # Commit changes
+            commit_message = f"Auto-sync vault changes - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+            subprocess.run(
+                ['git', 'commit', '-m', commit_message],
+                cwd=self.vault_path.parent,
+                check=True,
+                timeout=10
+            )
+
+            # Push to GitHub
+            subprocess.run(
+                ['git', 'push', 'origin', 'main'],
+                cwd=self.vault_path.parent,
+                check=True,
+                timeout=30
+            )
+
+            logger.info("✅ Vault changes pushed to GitHub")
+            return True
+
+        except subprocess.TimeoutExpired:
+            logger.warning("⚠️ Git operation timed out")
+            return False
+        except subprocess.CalledProcessError as e:
+            logger.warning(f"⚠️ Git operation failed: {e}")
+            return False
+        except Exception as e:
+            logger.error(f"❌ Error committing changes: {e}")
+            return False
 
 class RailwayOrchestrator:
     """All-in-one orchestrator for Railway/Render"""
