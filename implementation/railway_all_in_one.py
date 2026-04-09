@@ -1212,6 +1212,20 @@ Needs_Action -> Processing -> **Pending_Approval** -> Approved -> Done
 
             logger.info("📝 Detected vault changes, committing...")
 
+            # Configure git user (required for commits)
+            subprocess.run(
+                ['git', 'config', 'user.name', 'AI Employee Bot'],
+                cwd=self.vault_path.parent,
+                check=True,
+                timeout=10
+            )
+            subprocess.run(
+                ['git', 'config', 'user.email', 'ai-employee@render.com'],
+                cwd=self.vault_path.parent,
+                check=True,
+                timeout=10
+            )
+
             # Add all changes in vault
             subprocess.run(
                 ['git', 'add', 'AI_Employee_Vault/'],
@@ -1229,15 +1243,22 @@ Needs_Action -> Processing -> **Pending_Approval** -> Approved -> Done
                 timeout=10
             )
 
-            # Push to GitHub
-            subprocess.run(
-                ['git', 'push', 'origin', 'main'],
-                cwd=self.vault_path.parent,
-                check=True,
-                timeout=30
-            )
+            # Check if we have GitHub credentials for pushing
+            git_token = os.getenv('GIT_TOKEN', '')
+            if git_token:
+                # Push to GitHub with authentication
+                git_url = f"https://{git_token}@github.com/nahead/Hackathon0.git"
+                subprocess.run(
+                    ['git', 'push', git_url, 'main'],
+                    cwd=self.vault_path.parent,
+                    check=True,
+                    timeout=30
+                )
+                logger.info("✅ Vault changes pushed to GitHub")
+            else:
+                logger.warning("⚠️ GIT_TOKEN not configured, skipping push")
+                logger.info("✅ Vault changes committed locally")
 
-            logger.info("✅ Vault changes pushed to GitHub")
             return True
 
         except subprocess.TimeoutExpired:
