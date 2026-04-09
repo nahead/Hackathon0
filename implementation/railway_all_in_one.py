@@ -1197,9 +1197,9 @@ Needs_Action -> Processing -> **Pending_Approval** -> Approved -> Done
             return True
 
         try:
-            # Check if there are any changes
+            # Check if there are any changes specifically in AI_Employee_Vault/
             result = subprocess.run(
-                ['git', 'status', '--porcelain'],
+                ['git', 'status', '--porcelain', 'AI_Employee_Vault/'],
                 cwd=self.vault_path.parent,
                 capture_output=True,
                 text=True,
@@ -1207,7 +1207,7 @@ Needs_Action -> Processing -> **Pending_Approval** -> Approved -> Done
             )
 
             if not result.stdout.strip():
-                # No changes to commit
+                # No changes in vault to commit
                 return True
 
             logger.info("📝 Detected vault changes, committing...")
