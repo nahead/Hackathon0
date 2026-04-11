@@ -24,7 +24,7 @@ if sys.platform == 'win32':
 load_dotenv()
 
 # Configuration
-VAULT_PATH = Path(__file__).parent / "AI_Employee_Vault"
+VAULT_PATH = Path(__file__).parent.parent / "AI_Employee_Vault"
 APPROVED_FOLDER = VAULT_PATH / "Approved"
 DONE_FOLDER = VAULT_PATH / "Done"
 

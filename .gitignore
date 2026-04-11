@@ -63,6 +63,8 @@ tmp/
 *_session/
 linkedin_session/
 whatsapp_session/
+.wwebjs_auth/
+.wwebjs_cache/
 
 # Database
 *.db

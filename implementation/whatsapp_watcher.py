@@ -10,7 +10,7 @@ from pathlib import Path
 from datetime import datetime
 
 # Configuration
-VAULT_PATH = Path(__file__).parent / "AI_Employee_Vault"
+VAULT_PATH = Path(__file__).parent.parent / "AI_Employee_Vault"
 NEEDS_ACTION_FOLDER = VAULT_PATH / "Needs_Action"
 
 class WhatsAppWatcher:

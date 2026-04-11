@@ -1182,6 +1182,121 @@ Needs_Action -> Processing -> **Pending_Approval** -> Approved -> Done
             logger.error(f"❌ Exception while posting to LinkedIn: {e}")
             return False
 
+    def process_approved_whatsapp_responses(self):
+        """Process approved WhatsApp responses and send them"""
+        if not self.enabled:
+            return
+
+        approved_path = self.vault_path / "Approved"
+        done_path = self.vault_path / "Done"
+
+        if not approved_path.exists():
+            return
+
+        # Get all approved WhatsApp response files
+        whatsapp_responses = list(approved_path.glob("WHATSAPP_RESPONSE_*.md"))
+
+        if not whatsapp_responses:
+            return
+
+        # Check WhatsApp credentials
+        access_token = os.getenv('WHATSAPP_ACCESS_TOKEN', '')
+        phone_id = os.getenv('WHATSAPP_PHONE_NUMBER_ID', '')
+
+        if not access_token or not phone_id:
+            logger.warning("⚠️ WhatsApp credentials not configured, skipping responses")
+            return
+
+        logger.info(f"📱 Processing {len(whatsapp_responses)} WhatsApp response(s)")
+
+        for response_file in whatsapp_responses:
+            try:
+                # Read response file
+                content = response_file.read_text(encoding='utf-8')
+
+                # Extract phone number and message
+                phone = None
+                message_lines = []
+
+                # Parse frontmatter and content
+                lines = content.split('\n')
+                in_frontmatter = False
+
+                for line in lines:
+                    if line.strip() == '---':
+                        in_frontmatter = not in_frontmatter
+                        continue
+
+                    if in_frontmatter:
+                        if line.startswith('phone:'):
+                            phone = line.split(':', 1)[1].strip()
+                    else:
+                        if line.strip() and not line.startswith('#'):
+                            message_lines.append(line)
+
+                message = '\n'.join(message_lines).strip()
+
+                if not phone or not message:
+                    logger.warning(f"⚠️ Missing phone or message in: {response_file.name}")
+                    continue
+
+                # Send WhatsApp message
+                logger.info(f"📱 Sending WhatsApp to: {phone}")
+                success = self.send_whatsapp_message(phone, message, access_token, phone_id)
+
+                if success:
+                    # Move to Done folder
+                    done_path.mkdir(parents=True, exist_ok=True)
+                    done_file = done_path / response_file.name
+                    response_file.rename(done_file)
+                    logger.info(f"✅ WhatsApp sent and moved to Done: {response_file.name}")
+                else:
+                    logger.warning(f"❌ Failed to send WhatsApp: {response_file.name}")
+
+            except Exception as e:
+                logger.error(f"❌ Error processing WhatsApp response {response_file.name}: {e}")
+
+    def send_whatsapp_message(self, to_number, message_text, access_token, phone_id):
+        """Send WhatsApp message using Cloud API"""
+        url = f"https://graph.facebook.com/v18.0/{phone_id}/messages"
+
+        headers = {
+            'Authorization': f'Bearer {access_token}',
+            'Content-Type': 'application/json'
+        }
+
+        payload = {
+            'messaging_product': 'whatsapp',
+            'recipient_type': 'individual',
+            'to': to_number,
+            'type': 'text',
+            'text': {
+                'preview_url': False,
+                'body': message_text
+            }
+        }
+
+        try:
+            response = requests.post(
+                url,
+                headers=headers,
+                json=payload,
+                timeout=30
+            )
+
+            if response.status_code == 200:
+                result = response.json()
+                message_id = result.get('messages', [{}])[0].get('id', 'unknown')
+                logger.info(f"✅ WhatsApp message sent successfully! ID: {message_id}")
+                return True
+            else:
+                logger.error(f"❌ WhatsApp API error: {response.status_code} - {response.text}")
+                return False
+
+        except Exception as e:
+            logger.error(f"❌ Exception while sending WhatsApp: {e}")
+            return False
+
     def clone_or_pull_vault(self):
         """Ensure vault directory is ready"""
         if not self.enabled:
@@ -1316,6 +1431,9 @@ class RailwayOrchestrator:
 
                     # Process approved LinkedIn posts (publish them)
                     vault_sync.process_approved_linkedin_posts()
+
+                    # Process approved WhatsApp responses (send them)
+                    vault_sync.process_approved_whatsapp_responses()
 
                     # Push any local changes
                     vault_sync.commit_and_push_changes()
