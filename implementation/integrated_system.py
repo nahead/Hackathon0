@@ -19,6 +19,9 @@ from railway_all_in_one import *
 # Import intelligent WhatsApp responder
 from intelligent_whatsapp_responder import IntelligentWhatsAppResponder
 
+# Import premium dashboard
+from premium_dashboard import get_premium_dashboard
+
 # WhatsApp webhook configuration
 WEBHOOK_VERIFY_TOKEN = os.getenv('WHATSAPP_WEBHOOK_VERIFY_TOKEN', 'ai_employee_whatsapp_verify_2026')
 
@@ -41,6 +44,12 @@ class IntegratedHealthHandler(HealthHandler):
         """Handle GET requests - existing + WhatsApp verification"""
         if self.path.startswith('/webhook/whatsapp'):
             self.handle_whatsapp_verification()
+        elif self.path == '/':
+            # Serve premium dashboard
+            self.send_response(200)
+            self.send_header('Content-type', 'text/html')
+            self.end_headers()
+            self.wfile.write(get_premium_dashboard().encode('utf-8'))
         else:
             # Call parent class for existing endpoints
             super().do_GET()
