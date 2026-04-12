@@ -21,6 +21,18 @@
         "WHATSAPP_PHONE_NUMBER_ID": "${WHATSAPP_PHONE_NUMBER_ID}"
       }
     },
+    "odoo": {
+      "command": "node",
+      "args": [
+        "C:\\Users\\nahead\\Documents\\GitHub\\Hackathon0\\mcp_servers\\odoo_mcp\\index.js"
+      ],
+      "env": {
+        "ODOO_URL": "${ODOO_URL}",
+        "ODOO_DB": "${ODOO_DB}",
+        "ODOO_USERNAME": "${ODOO_USERNAME}",
+        "ODOO_PASSWORD": "${ODOO_PASSWORD}"
+      }
+    },
     "browser": {
       "command": "npx",
       "args": [
