@@ -2,16 +2,17 @@
 
 <div align="center">
 
-**🥇 GOLD TIER ACHIEVED** 🎯  
-*Production-ready AI Employee with multi-platform integration*
+**🥇 GOLD TIER ACHIEVED + 💎 PLATINUM DEPLOYED** 🎯  
+*Production-ready AI Employee with Cloud/Local split architecture*
 
-[![Live Demo](https://img.shields.io/badge/Live%20Demo-Online-success?style=for-the-badge)](https://ai-employee-whatsapp.onrender.com/health)
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-Online-success?style=for-the-badge)](https://ai-employee-cloud.onrender.com)
 [![GitHub](https://img.shields.io/badge/GitHub-Repository-blue?style=for-the-badge&logo=github)](https://github.com/nahead/Hackathon0)
 [![Gold Tier](https://img.shields.io/badge/Gold%20Tier-100%25-gold?style=for-the-badge)](./TIER_COMPLIANCE_REPORT.md)
+[![Platinum](https://img.shields.io/badge/Platinum-89%25-purple?style=for-the-badge)](./PLATINUM_STATUS.md)
 
-**A fully autonomous AI employee system running 24/7 on the cloud**
+**A fully autonomous AI employee system with Cloud/Local split architecture running 24/7**
 
-[🚀 Live Demo](#-live-deployment) • [📖 Documentation](#-documentation) • [✨ Features](#-key-features) • [🏅 Achievements](#-tier-achievements)
+[🚀 Live Demo](#-live-deployment) • [📖 Documentation](#-documentation) • [✨ Features](#-key-features) • [🏅 Achievements](#-tier-achievements) • [💎 Platinum](#-platinum-tier-architecture)
 
 </div>
 
@@ -20,13 +21,14 @@
 ## 🎯 What Is This?
 
 A **production-ready AI employee** that autonomously manages business operations 24/7 using:
-- **Claude Code** as the reasoning engine with 19 Agent Skills
+- **Claude Code** as the reasoning engine with 15 Agent Skills
 - **Obsidian** as the knowledge base and dashboard
 - **5 MCP Servers** for external system integration
 - **Advanced AI** responses via Claude API
 - **Multi-platform** integration (6 channels)
+- **Cloud/Local Split** architecture (Platinum Tier)
 
-**Live Right Now:** https://ai-employee-whatsapp.onrender.com/
+**Live Right Now:** https://ai-employee-cloud.onrender.com
 
 ---
 
@@ -85,7 +87,7 @@ A **production-ready AI employee** that autonomously manages business operations
 </tr>
 </table>
 
-**Status:** Gold Tier Ready for Submission ✅
+**Status:** Gold Tier Ready + Platinum Deployed ✅
 
 ---
 
@@ -93,6 +95,7 @@ A **production-ready AI employee** that autonomously manages business operations
 
 ### 🤖 Autonomous Operations
 - **24/7 Cloud Deployment** on Render.com
+- **Cloud/Local Split Architecture** (Platinum Tier)
 - **WhatsApp Intelligent Auto-Responder** with message classification
 - **Email Monitoring** with auto-draft responses
 - **LinkedIn Automation** for business development
@@ -125,28 +128,33 @@ A **production-ready AI employee** that autonomously manages business operations
 **Status:** ✅ Running 24/7 on Render.com
 
 ```bash
-curl https://ai-employee-whatsapp.onrender.com/health
+curl https://ai-employee-cloud.onrender.com/health
 ```
 
 **Response:**
 ```json
 {
   "status": "healthy",
-  "service": "whatsapp_webhook",
-  "timestamp": "2026-04-12T..."
+  "timestamp": "2026-04-12T...",
+  "services": {
+    "orchestrator": "running",
+    "vault_sync": "active",
+    "gmail_watcher": "monitoring"
+  }
 }
 ```
 
 **Live Features:**
-- 🤖 WhatsApp intelligent auto-responder
+- 🤖 Cloud orchestrator (draft-only mode)
 - 📧 Email monitoring and processing
 - 💼 LinkedIn automation
 - 🐦 Twitter integration
 - 📘 Facebook/Instagram posting
 - 📊 Real-time dashboard
 - 🔔 Activity logging
+- 🔄 Vault Git sync
 
-**Dashboard:** https://ai-employee-whatsapp.onrender.com/
+**Dashboard:** https://ai-employee-cloud.onrender.com
 
 ---
 
@@ -202,37 +210,43 @@ python implementation/twitter_integration.py
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                  CLOUD (Render.com 24/7)                    │
+│              CLOUD AGENT (Render.com 24/7)                  │
+│                    DRAFT-ONLY MODE                          │
 │  ┌──────────────────────────────────────────────────────┐  │
-│  │  WhatsApp Webhook → Intelligent Classification       │  │
-│  │  Email Monitor → Auto-Draft Responses                │  │
-│  │  LinkedIn Scheduler → Daily Posts                    │  │
-│  │  Twitter/FB/IG → Social Media Automation             │  │
+│  │  Email Triage → Draft Responses                      │  │
+│  │  Social Media → Draft Posts                          │  │
+│  │  Data Collection → Monitoring                        │  │
+│  │  Writes to: /Pending_Approval/ (drafts)             │  │
+│  │  NO final actions (no send/post)                     │  │
 │  └──────────────────────────────────────────────────────┘  │
-└─────────────────────────────────────────────────────────────┘
-                            ↕
+└────────────────────────┬────────────────────────────────────┘
+                         │
+                         ▼ Git Sync (every 5 min)
 ┌─────────────────────────────────────────────────────────────┐
-│                  OBSIDIAN VAULT (Local)                     │
+│                  VAULT GIT REPOSITORY                       │
 │  ┌──────────────────────────────────────────────────────┐  │
-│  │  Dashboard.md → Real-time Status                     │  │
-│  │  Pending_Approval/ → Human Review Queue              │  │
-│  │  19 Agent Skills → Claude Code Integration           │  │
+│  │  Pending_Approval/ → Drafts awaiting approval        │  │
+│  │  Needs_Action/cloud/ → Cloud tasks                   │  │
+│  │  Plans/cloud/ → Cloud plans                          │  │
 │  └──────────────────────────────────────────────────────┘  │
-└─────────────────────────────────────────────────────────────┘
-                            ↕
+└────────────────────────┬────────────────────────────────────┘
+                         │
+                         ▼ Git Pull (every 60 sec)
 ┌─────────────────────────────────────────────────────────────┐
-│                  MCP SERVERS (5 Servers)                    │
+│                  LOCAL AGENT (Your Machine)                 │
+│                   APPROVAL & EXECUTION                      │
 │  ┌──────────────────────────────────────────────────────┐  │
-│  │  Email MCP → Gmail + SMTP                            │  │
-│  │  WhatsApp MCP → Cloud API                            │  │
-│  │  Browser MCP → Web Automation                        │  │
-│  │  Filesystem MCP → Vault Operations                   │  │
-│  │  Odoo MCP → Accounting Integration                   │  │
+│  │  Monitors /Pending_Approval/                         │  │
+│  │  Human reviews and approves                          │  │
+│  │  Executes approved actions via MCP                   │  │
+│  │  WhatsApp session (local only)                       │  │
+│  │  Banking/payment operations                          │  │
+│  │  Writes to: /Approved/, /Done/                       │  │
 │  └──────────────────────────────────────────────────────┘  │
 └─────────────────────────────────────────────────────────────┘
 ```
 
-**Key Innovation:** Multi-channel autonomous operation with intelligent classification
+**Key Innovation:** Cloud/Local split with Git-based vault sync for security and reliability
 
 ---
 
@@ -300,9 +314,12 @@ Hackathon0/
 │   ├── Pending_Approval/           # Approval queue
 │   ├── Approved/                   # Approved actions
 │   ├── Done/                       # Completed tasks
-│   └── .claude/skills/             # 19 Agent Skills
-├── implementation/                 # All Python code (26 files)
+│   └── .claude/skills/             # 15 Agent Skills
+├── implementation/                 # All Python code (33 files)
 │   ├── integrated_system.py       # Main orchestrator
+│   ├── cloud_orchestrator.py      # Cloud agent (Platinum)
+│   ├── local_orchestrator.py      # Local agent (Platinum)
+│   ├── vault_sync.py              # Git sync automation
 │   ├── intelligent_whatsapp_responder.py  # WhatsApp AI
 │   ├── advanced_ai_responder.py   # Claude API integration
 │   ├── twitter_integration.py     # Twitter posting
@@ -315,8 +332,10 @@ Hackathon0/
 │   ├── whatsapp_mcp/               # WhatsApp MCP server
 │   ├── odoo_mcp/                   # Odoo MCP server
 │   └── .claude/mcp_config.json     # MCP configuration
-└── documentation/                  # All documentation (15 files)
+└── documentation/                  # All documentation (18 files)
     ├── TIER_COMPLIANCE_REPORT.md   # Tier status analysis
+    ├── PLATINUM_ARCHITECTURE.md    # Platinum architecture guide
+    ├── PLATINUM_STATUS.md          # Platinum progress
     ├── ADVANCED_AI_SETUP.md        # AI configuration
     ├── MCP_SERVERS_SETUP.md        # MCP setup guide
     ├── ODOO_INTEGRATION_GUIDE.md   # Odoo setup
@@ -424,12 +443,23 @@ All major Gold tier requirements met with production-ready code:
 - ✅ Ralph Wiggum autonomous loops
 - ✅ Complete documentation
 
+### 2. Platinum Tier Implementation (89%)
+Cloud/Local split architecture deployed and running:
+- ✅ Cloud orchestrator on Render.com (24/7)
+- ✅ Local orchestrator ready
+- ✅ Vault Git sync automation
+- ✅ Work-zone specialization
+- ✅ Security rules (secrets never sync)
+- ✅ Draft-only mode in cloud
+- ⚠️ Odoo cloud VM (optional, 11% remaining)
+
 ### 2. Live 24/7 Cloud Deployment
 Running on Render.com with:
-- Real-time WhatsApp webhook
+- Real-time cloud orchestrator
 - Premium dashboard with live updates
 - Health monitoring API
 - Comprehensive logging
+- Vault Git sync
 
 ### 3. Advanced AI Integration
 - Claude API for intelligent responses
@@ -438,9 +468,10 @@ Running on Render.com with:
 - Business-specific knowledge
 
 ### 4. Production-Ready Architecture
-- 26 Python implementation files
+- 33 Python implementation files
 - 5 MCP servers for external actions
-- 19 Agent Skills for Claude Code
+- 15 Agent Skills for Claude Code
+- Cloud/Local split (Platinum)
 - Human-in-the-loop safety
 - Complete audit trails
 
@@ -452,17 +483,17 @@ Running on Render.com with:
 
 1. **Check Live Deployment:**
    ```bash
-   curl https://ai-employee-whatsapp.onrender.com/health
+   curl https://ai-employee-cloud.onrender.com/health
    ```
 
 2. **View Live Dashboard:**
-   Open https://ai-employee-whatsapp.onrender.com in browser
+   Open https://ai-employee-cloud.onrender.com in browser
 
 3. **Review Tier Compliance:**
    [TIER_COMPLIANCE_REPORT.md](./TIER_COMPLIANCE_REPORT.md)
 
-4. **Test WhatsApp System:**
-   Send message to business number (see deployment guide)
+4. **Review Platinum Architecture:**
+   [PLATINUM_STATUS.md](./PLATINUM_STATUS.md)
 
 ### Key Metrics
 - ✅ **Bronze Tier:** 100% (6/6 requirements)
@@ -485,9 +516,10 @@ Running on Render.com with:
 ## 📞 Links
 
 - **GitHub Repository:** https://github.com/nahead/Hackathon0
-- **Live Dashboard:** https://ai-employee-whatsapp.onrender.com
-- **Health API:** https://ai-employee-whatsapp.onrender.com/health
+- **Live Dashboard:** https://ai-employee-cloud.onrender.com
+- **Health API:** https://ai-employee-cloud.onrender.com/health
 - **Tier Compliance Report:** [TIER_COMPLIANCE_REPORT.md](./TIER_COMPLIANCE_REPORT.md)
+- **Platinum Status:** [PLATINUM_STATUS.md](./PLATINUM_STATUS.md)
 - **MCP Setup Guide:** [MCP_SERVERS_SETUP.md](./documentation/MCP_SERVERS_SETUP.md)
 - **Odoo Integration:** [ODOO_INTEGRATION_GUIDE.md](./documentation/ODOO_INTEGRATION_GUIDE.md)
 - **Submission Form:** https://forms.gle/JR9T1SJq5rmQyGkGA
