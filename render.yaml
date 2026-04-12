@@ -2,9 +2,9 @@
 # This file tells Render how to deploy your AI Employee
 
 services:
-  # Main Cloud Orchestrator (24/7 monitoring)
+  # WhatsApp Webhook (Existing)
   - type: web
-    name: ai-employee-cloud
+    name: ai-employee-whatsapp
     env: python
     region: oregon
     plan: free
@@ -15,32 +15,34 @@ services:
         value: cloud
       - key: PYTHON_VERSION
         value: 3.13.9
-      - key: SMTP_USER
+      - key: WHATSAPP_ACCESS_TOKEN
         sync: false
-      - key: SMTP_PASS
+      - key: WHATSAPP_PHONE_NUMBER_ID
         sync: false
-      - key: VAULT_REPO_URL
-        sync: false
-      - key: GIT_USERNAME
-        sync: false
-      - key: GIT_TOKEN
+      - key: ANTHROPIC_API_KEY
         sync: false
     healthCheckPath: /health
 
-  # Background worker for vault sync (optional)
+  # Platinum Tier: Cloud Orchestrator (NEW)
   - type: worker
-    name: ai-employee-vault-sync
+    name: cloud-orchestrator-platinum
     env: python
     region: oregon
     plan: free
     buildCommand: pip install -r requirements.txt
-    startCommand: python cloud-deployment/scripts/vault_sync_daemon.py
+    startCommand: python implementation/cloud_orchestrator.py
     envVars:
-      - key: AGENT_TYPE
+      - key: MODE
         value: cloud
       - key: VAULT_REPO_URL
         sync: false
-      - key: GIT_USERNAME
+      - key: GITHUB_TOKEN
         sync: false
-      - key: GIT_TOKEN
+      - key: VAULT_PATH
+        value: ./AI_Employee_Vault
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
         sync: false
