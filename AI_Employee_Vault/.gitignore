@@ -1,50 +1,39 @@
-# Security - NEVER commit these files
+# Vault .gitignore - Security Rules
+# CRITICAL: Secrets never sync
+
+# Environment files
+.env
 *.env
+.env.*
+
+# Credentials
+*.json
+credentials/
+.credentials/
+
+# Sessions
+.session/
+*.session
+session_*
+
+# Banking
+banking/
+*.bank
+
+# Private keys
 *.key
 *.pem
-*_session/
-whatsapp_session/
-linkedin_session/
-facebook_session/
-instagram_session/
-twitter_session/
-.wwebjs_*/
-credentials.json
-token.json
-*_token.json
-secrets/
-.secrets/
+*.p12
 
-# Python
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
-.Python
-env/
-venv/
-.venv/
-
-# System files
-.DS_Store
-Thumbs.db
-*.swp
-*.swo
-*~
-
-# Logs (keep structure but not content)
-logs/*.log
-*.log
+# Logs (optional - can sync if needed)
+Logs/*.log
 
 # Temporary files
-tmp/
-temp/
-.tmp/
+*.tmp
+*.temp
+.DS_Store
+Thumbs.db
 
-# Node modules
-node_modules/
-
-# IDE files
-.vscode/
-.idea/
-*.sublime-*
+# WhatsApp session
+.wwebjs_auth/
+.wwebjs_cache/
