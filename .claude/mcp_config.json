@@ -1,0 +1,41 @@
+{
+  "mcpServers": {
+    "email": {
+      "command": "node",
+      "args": [
+        "C:\\Users\\nahead\\Documents\\GitHub\\Hackathon0\\mcp_servers\\email_mcp\\index.js"
+      ],
+      "env": {
+        "GMAIL_CREDENTIALS": "C:\\Users\\nahead\\Documents\\GitHub\\Hackathon0\\.credentials\\gmail_credentials.json",
+        "SMTP_HOST": "smtp.gmail.com",
+        "SMTP_PORT": "587"
+      }
+    },
+    "whatsapp": {
+      "command": "node",
+      "args": [
+        "C:\\Users\\nahead\\Documents\\GitHub\\Hackathon0\\mcp_servers\\whatsapp_mcp\\index.js"
+      ],
+      "env": {
+        "WHATSAPP_ACCESS_TOKEN": "${WHATSAPP_ACCESS_TOKEN}",
+        "WHATSAPP_PHONE_NUMBER_ID": "${WHATSAPP_PHONE_NUMBER_ID}"
+      }
+    },
+    "browser": {
+      "command": "npx",
+      "args": [
+        "@modelcontextprotocol/server-playwright"
+      ],
+      "env": {
+        "HEADLESS": "true"
+      }
+    },
+    "filesystem": {
+      "command": "npx",
+      "args": [
+        "@modelcontextprotocol/server-filesystem",
+        "C:\\Users\\nahead\\Documents\\GitHub\\Hackathon0\\AI_Employee_Vault"
+      ]
+    }
+  }
+}
