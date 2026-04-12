@@ -11,6 +11,7 @@ import sys
 import time
 import json
 import requests
+import logging
 from pathlib import Path
 from datetime import datetime
 from dotenv import load_dotenv
@@ -23,6 +24,10 @@ if sys.platform == 'win32':
 
 # Load environment
 load_dotenv()
+
+# Setup logging
+logger = logging.getLogger('WhatsAppResponder')
+logger.setLevel(logging.INFO)
 
 # Configuration
 VAULT_PATH = Path(__file__).parent.parent / "AI_Employee_Vault"
@@ -155,6 +160,9 @@ class IntelligentWhatsAppResponder:
 
     def send_whatsapp_message(self, to_number, message_text):
         """Send WhatsApp message via Cloud API"""
+        logger.info(f"[API] Attempting to send to {to_number}")
+        logger.info(f"[TOKEN] Length: {len(self.token)}, Phone ID: {self.phone_id}")
+
         headers = {
             'Authorization': f'Bearer {self.token}',
             'Content-Type': 'application/json'
@@ -172,6 +180,7 @@ class IntelligentWhatsAppResponder:
         }
 
         try:
+            logger.info(f"[API] Sending request to WhatsApp API...")
             response = requests.post(
                 self.api_url,
                 headers=headers,
@@ -179,16 +188,21 @@ class IntelligentWhatsAppResponder:
                 timeout=30
             )
 
+            logger.info(f"[API] Response status: {response.status_code}")
+
             if response.status_code == 200:
                 result = response.json()
                 message_id = result.get('messages', [{}])[0].get('id', 'unknown')
+                logger.info(f"[SENT] ✅ Message sent to {to_number} (ID: {message_id})")
                 print(f"[SENT] ✅ Message sent to {to_number} (ID: {message_id})")
                 return True
             else:
+                logger.error(f"[ERROR] Failed to send: {response.status_code} - {response.text}")
                 print(f"[ERROR] Failed to send: {response.status_code} - {response.text}")
                 return False
 
         except Exception as e:
+            logger.error(f"[ERROR] Exception: {e}")
             print(f"[ERROR] Exception: {e}")
             return False
 
@@ -258,7 +272,12 @@ This message was classified as serious because it contains:
 
         # Skip if already processed
         if message_id in self.processed_messages:
+            logger.info(f"[SKIP] Message already processed: {message_id}")
             return
+
+        logger.info(f"\n{'='*70}")
+        logger.info(f"[NEW MESSAGE] From: {message_data['name']} ({message_data['from']})")
+        logger.info(f"[CONTENT] {message_data['content'][:100]}...")
 
         print(f"\n{'='*70}")
         print(f"[NEW MESSAGE] From: {message_data['name']} ({message_data['from']})")
@@ -266,15 +285,18 @@ This message was classified as serious because it contains:
 
         # Classify message
         classification = self.classify_message(message_data['content'])
+        logger.info(f"[CLASSIFICATION] {classification.upper()}")
         print(f"[CLASSIFICATION] {classification.upper()}")
 
         if classification == 'serious':
             # Create approval request
+            logger.info(f"[ACTION] Creating approval request...")
             print(f"[ACTION] Creating approval request...")
             self.create_approval_request(message_data)
 
         else:
             # Generate and send intelligent response
+            logger.info(f"[ACTION] Generating intelligent response...")
             print(f"[ACTION] Generating intelligent response...")
             response = self.generate_intelligent_response(
                 message_data['content'],
@@ -282,6 +304,7 @@ This message was classified as serious because it contains:
                 classification
             )
 
+            logger.info(f"[RESPONSE] {response[:100]}...")
             print(f"[RESPONSE] {response[:100]}...")
 
             # Send response
@@ -291,13 +314,16 @@ This message was classified as serious because it contains:
             )
 
             if success:
+                logger.info(f"[SUCCESS] ✅ Auto-responded to {message_data['name']}")
                 print(f"[SUCCESS] ✅ Auto-responded to {message_data['name']}")
             else:
+                logger.error(f"[FAILED] ❌ Could not send response")
                 print(f"[FAILED] ❌ Could not send response")
 
         # Mark as processed
         self.processed_messages.add(message_id)
         self._save_state()
+        logger.info(f"{'='*70}\n")
         print(f"{'='*70}\n")
 
     def check_messages(self):
