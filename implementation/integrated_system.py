@@ -125,12 +125,15 @@ class IntegratedHealthHandler(HealthHandler):
                     'type': message_type
                 }
 
-                # Process with intelligent responder (in background thread)
-                threading.Thread(
-                    target=whatsapp_responder.process_message,
-                    args=(message_data,),
-                    daemon=True
-                ).start()
+                # Process with intelligent responder (with error handling)
+                try:
+                    logger.info(f"🔄 Processing message: {message_id}")
+                    whatsapp_responder.process_message(message_data)
+                    logger.info(f"✅ Message processed: {message_id}")
+                except Exception as e:
+                    logger.error(f"❌ Failed to process message: {e}")
+                    import traceback
+                    logger.error(traceback.format_exc())
 
             # Send success response
             self.send_response(200)
