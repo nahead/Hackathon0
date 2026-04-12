@@ -71,12 +71,13 @@ A **production-ready AI employee** that autonomously manages business operations
 <td align="center" width="25%">
 
 ### 💎 Platinum
-**78%**
+**89%**
 
 ✅ Cloud 24/7 (Live)  
 ✅ Cloud/Local Split  
 ✅ Vault Sync  
 ✅ Work-Zone Split  
+✅ Deployed to Render
 ⚠️ Odoo Cloud VM  
 ⚠️ Demo Video
 
