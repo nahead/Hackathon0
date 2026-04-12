@@ -16,6 +16,13 @@ from pathlib import Path
 from datetime import datetime
 from dotenv import load_dotenv
 
+# Import advanced AI responder
+try:
+    from advanced_ai_responder import get_advanced_responder
+    ADVANCED_AI_AVAILABLE = True
+except ImportError:
+    ADVANCED_AI_AVAILABLE = False
+
 # Set UTF-8 encoding
 if sys.platform == 'win32':
     import codecs
@@ -123,40 +130,64 @@ class IntelligentWhatsAppResponder:
         # Default to routine
         return 'routine'
 
-    def generate_intelligent_response(self, message_text, sender_name, classification):
+    def generate_intelligent_response(self, message_text, sender_name, phone_number, classification):
         """
         Generate intelligent response based on message content
 
-        Uses simple rule-based generation (in production, use Claude API)
+        Uses Advanced AI (Claude API) if available, otherwise enhanced fallback
         """
+        # Try advanced AI responder first
+        if ADVANCED_AI_AVAILABLE:
+            try:
+                logger.info(f"[AI] Using Advanced AI Responder...")
+                advanced_responder = get_advanced_responder()
+                response = advanced_responder.generate_advanced_response(
+                    message_text,
+                    sender_name,
+                    phone_number,
+                    classification
+                )
+                return response
+            except Exception as e:
+                logger.error(f"[AI] Advanced AI failed: {e}, using fallback")
+
+        # Fallback to enhanced rule-based responses
         message_lower = message_text.lower()
 
+        # Services inquiry
+        if any(word in message_lower for word in ['service', 'services', 'provide', 'offer', 'do', 'what']):
+            return f"Hi {sender_name}! We specialize in AI-powered business automation:\n\n✅ WhatsApp Auto-Responder (24/7)\n✅ LinkedIn Automation\n✅ Email Management\n✅ Complete AI Employee Solutions\n\nStarting at $99/month. Which service interests you most?"
+
+        # Pricing inquiry
+        if any(word in message_lower for word in ['price', 'cost', 'rate', 'fee', 'charge', 'pricing', 'plan']):
+            return f"Hi {sender_name}! Our pricing:\n\n💼 Starter: $99/month\n🚀 Professional: $299/month\n🏢 Enterprise: Custom pricing\n\nAll plans include 24/7 support. Would you like details on a specific plan?"
+
         # Greeting responses
-        if any(word in message_lower for word in ['hello', 'hi', 'hey', 'salam']):
-            return f"Hello {sender_name}! Thank you for contacting us. How can I help you today?"
+        if any(word in message_lower for word in ['hello', 'hi', 'hey', 'salam', 'assalam']):
+            return f"Hello {sender_name}! 👋 Welcome to our AI Business Automation service. We help businesses automate WhatsApp, LinkedIn, and Email with intelligent AI. How can I assist you today?"
 
         # Thanks responses
-        if any(word in message_lower for word in ['thanks', 'thank you', 'شکریہ']):
-            return f"You're welcome, {sender_name}! Feel free to reach out if you need anything else."
+        if any(word in message_lower for word in ['thanks', 'thank you', 'شکریہ', 'shukriya']):
+            return f"You're very welcome, {sender_name}! 😊 Feel free to reach out anytime if you need help. We're here 24/7!"
+
+        # How it works
+        if any(word in message_lower for word in ['how', 'work', 'kaise', 'process']):
+            return f"Hi {sender_name}! Here's how it works:\n\n1️⃣ We integrate with your WhatsApp/LinkedIn/Email\n2️⃣ AI learns your business context\n3️⃣ Automatically handles routine messages\n4️⃣ You approve important responses\n\nSetup takes just 15 minutes! Want to get started?"
 
         # Status/Update queries
         if any(word in message_lower for word in ['status', 'update', 'progress']):
             return f"Hi {sender_name}, I'll check the status and get back to you shortly. Thank you for your patience!"
 
-        # Pricing queries
-        if any(word in message_lower for word in ['price', 'cost', 'rate', 'fee', 'charge']):
-            return f"Hi {sender_name}, thank you for your interest! Our pricing depends on your specific requirements. Could you please share more details about what you're looking for?"
-
-        # Information requests
-        if any(word in message_lower for word in ['info', 'information', 'details', 'tell me']):
-            return f"Hi {sender_name}, I'd be happy to provide more information. What specific details would you like to know?"
-
         # Timing/Schedule queries
-        if any(word in message_lower for word in ['when', 'timing', 'schedule', 'time']):
-            return f"Hi {sender_name}, our business hours are Monday-Friday, 9 AM - 6 PM. We'll respond to your inquiry as soon as possible!"
+        if any(word in message_lower for word in ['when', 'timing', 'schedule', 'time', 'available', 'hours', 'kab']):
+            return f"Hi {sender_name}! Our AI works 24/7 non-stop! 🤖\n\nFor human support:\n📅 Monday-Friday, 9 AM - 6 PM (PKT)\n⚡ Response time: Within 2 hours\n\nWhat would you like to know?"
+
+        # Demo/trial
+        if any(word in message_lower for word in ['demo', 'trial', 'test', 'try', 'show']):
+            return f"Hi {sender_name}! We offer a FREE 7-day trial! 🎉\n\nYou'll get:\n✅ Full access to all features\n✅ Personal onboarding session\n✅ 24/7 support\n\nNo credit card required. Ready to start?"
 
         # Default intelligent response
-        return f"Hi {sender_name}, thank you for your message. I've received your inquiry and will get back to you shortly with a detailed response. Is there anything specific I can help you with right away?"
+        return f"Hi {sender_name}! Thank you for your message. I'm your AI assistant, and I'm here to help with:\n\n🤖 Business automation questions\n💰 Pricing and plans\n🚀 Getting started\n\nWhat would you like to know more about?"
 
     def send_whatsapp_message(self, to_number, message_text):
         """Send WhatsApp message via Cloud API"""
@@ -301,6 +332,7 @@ This message was classified as serious because it contains:
             response = self.generate_intelligent_response(
                 message_data['content'],
                 message_data['name'],
+                message_data['from'],
                 classification
             )
 
