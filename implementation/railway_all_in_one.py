@@ -1529,23 +1529,23 @@ class RailwayOrchestrator:
         return True
 
     def linkedin_poster_service(self):
-        """Background LinkedIn posting - checks every 60 seconds"""
-        logger.info("📱 Starting LinkedIn poster service (60-second checks)...")
+        """Background LinkedIn posting - checks every 3 hours"""
+        logger.info("📱 Starting LinkedIn poster service (3-hour checks)...")
 
         try:
             vault_sync = CloudVaultSync(self.vault_path)
 
             while True:
                 try:
-                    # Check for LinkedIn posts every minute
+                    # Check for LinkedIn posts every 3 hours
                     vault_sync.process_approved_linkedin_posts()
 
                     logger.info("📱 LinkedIn check heartbeat")
-                    time.sleep(60)  # 1 minute
+                    time.sleep(10800)  # 3 hours
 
                 except Exception as e:
                     logger.error(f"❌ LinkedIn poster error: {e}")
-                    time.sleep(60)
+                    time.sleep(10800)
 
         except Exception as e:
             logger.error(f"❌ LinkedIn poster initialization failed: {e}")
@@ -1589,7 +1589,7 @@ class RailwayOrchestrator:
 
     def gmail_watcher_service(self):
         """Background Gmail monitoring"""
-        logger.info("📧 Starting Gmail watcher service...")
+        logger.info("📧 Starting Gmail watcher service (2-hour checks)...")
 
         try:
             gmail_watcher = CloudGmailWatcher(self.vault_path)
@@ -1603,11 +1603,11 @@ class RailwayOrchestrator:
                         mail.logout()
 
                     logger.info("📬 Gmail monitoring heartbeat")
-                    time.sleep(300)  # 5 minutes
+                    time.sleep(7200)  # 2 hours
 
                 except Exception as e:
                     logger.error(f"❌ Gmail watcher error: {e}")
-                    time.sleep(60)
+                    time.sleep(7200)
 
         except Exception as e:
             logger.error(f"❌ Gmail watcher initialization failed: {e}")
