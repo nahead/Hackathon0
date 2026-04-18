@@ -244,7 +244,7 @@ class HealthHandler(BaseHTTPRequestHandler):
 
             # Configure Gemini
             genai.configure(api_key=gemini_api_key)
-            model = genai.GenerativeModel('gemini-pro')
+            model = genai.GenerativeModel('gemini-1.5-flash')
 
             # Business context and instructions
             system_context = """You are an AI assistant representing Nahead Jokhio's business.
