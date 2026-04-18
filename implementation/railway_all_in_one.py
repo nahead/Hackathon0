@@ -96,6 +96,9 @@ class HealthHandler(BaseHTTPRequestHandler):
 
             emails = self.get_pending_emails()
             self.wfile.write(json.dumps(emails).encode())
+        elif self.path.startswith('/webhook/whatsapp'):
+            # WhatsApp webhook verification (GET request)
+            self.handle_whatsapp_verification()
         elif self.path == '/':
             self.send_response(200)
             self.send_header('Content-type', 'text/html')
@@ -104,6 +107,123 @@ class HealthHandler(BaseHTTPRequestHandler):
         else:
             self.send_response(404)
             self.end_headers()
+
+    def do_POST(self):
+        """Handle POST requests - WhatsApp webhook"""
+        if self.path.startswith('/webhook/whatsapp'):
+            self.handle_whatsapp_message()
+        else:
+            self.send_response(404)
+            self.end_headers()
+
+    def handle_whatsapp_verification(self):
+        """Handle WhatsApp webhook verification (GET)"""
+        try:
+            from urllib.parse import urlparse, parse_qs
+            query = parse_qs(urlparse(self.path).query)
+
+            mode = query.get('hub.mode', [''])[0]
+            token = query.get('hub.verify_token', [''])[0]
+            challenge = query.get('hub.challenge', [''])[0]
+
+            verify_token = os.getenv('WHATSAPP_WEBHOOK_VERIFY_TOKEN', 'ai_employee_whatsapp_verify_2026')
+
+            if mode == 'subscribe' and token == verify_token:
+                logger.info("✅ WhatsApp webhook verified")
+                self.send_response(200)
+                self.send_header('Content-type', 'text/plain')
+                self.end_headers()
+                self.wfile.write(challenge.encode())
+            else:
+                logger.warning("❌ WhatsApp webhook verification failed")
+                self.send_response(403)
+                self.end_headers()
+        except Exception as e:
+            logger.error(f"❌ Webhook verification error: {e}")
+            self.send_response(500)
+            self.end_headers()
+
+    def handle_whatsapp_message(self):
+        """Handle incoming WhatsApp message (POST)"""
+        try:
+            content_length = int(self.headers.get('Content-Length', 0))
+            post_data = self.rfile.read(content_length)
+            data = json.loads(post_data.decode('utf-8'))
+
+            logger.info("📱 WhatsApp message received")
+
+            # Extract message data
+            entry = data.get('entry', [{}])[0]
+            changes = entry.get('changes', [{}])[0]
+            value = changes.get('value', {})
+            messages = value.get('messages', [])
+
+            if messages:
+                for message in messages:
+                    from_number = message.get('from', '')
+                    message_type = message.get('type', 'text')
+
+                    if message_type == 'text':
+                        content = message.get('text', {}).get('body', '')
+                    else:
+                        content = f"[{message_type.upper()} message]"
+
+                    contacts = value.get('contacts', [{}])
+                    contact_name = contacts[0].get('profile', {}).get('name', 'Unknown') if contacts else 'Unknown'
+
+                    logger.info(f"📱 From: {contact_name} ({from_number}): {content[:50]}...")
+
+                    # Auto-respond immediately
+                    self.send_whatsapp_auto_response(from_number, content, contact_name)
+
+            self.send_response(200)
+            self.send_header('Content-type', 'application/json')
+            self.end_headers()
+            self.wfile.write(json.dumps({'status': 'ok'}).encode())
+
+        except Exception as e:
+            logger.error(f"❌ WhatsApp message handling error: {e}")
+            self.send_response(500)
+            self.end_headers()
+
+    def send_whatsapp_auto_response(self, to_number, message_content, contact_name):
+        """Send automatic WhatsApp response"""
+        try:
+            access_token = os.getenv('WHATSAPP_ACCESS_TOKEN', '')
+            phone_id = os.getenv('WHATSAPP_PHONE_NUMBER_ID', '')
+
+            if not access_token or not phone_id:
+                logger.warning("⚠️ WhatsApp credentials not configured")
+                return
+
+            # Simple auto-response
+            response_text = f"Hi {contact_name}! Thanks for your message. I've received it and will get back to you shortly. 🤖"
+
+            url = f"https://graph.facebook.com/v18.0/{phone_id}/messages"
+            headers = {
+                'Authorization': f'Bearer {access_token}',
+                'Content-Type': 'application/json'
+            }
+            payload = {
+                'messaging_product': 'whatsapp',
+                'recipient_type': 'individual',
+                'to': to_number,
+                'type': 'text',
+                'text': {
+                    'preview_url': False,
+                    'body': response_text
+                }
+            }
+
+            response = requests.post(url, json=payload, headers=headers, timeout=10)
+
+            if response.status_code == 200:
+                logger.info(f"✅ Auto-response sent to {contact_name}")
+            else:
+                logger.warning(f"⚠️ Failed to send auto-response: {response.status_code}")
+
+        except Exception as e:
+            logger.error(f"❌ Auto-response error: {e}")
 
     def get_pending_emails(self):
         """Get list of pending emails"""
