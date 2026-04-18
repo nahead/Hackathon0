@@ -22,6 +22,14 @@ from email.mime.multipart import MIMEMultipart
 import json
 from http.server import HTTPServer, BaseHTTPRequestHandler
 
+# Gemini AI
+try:
+    import google.generativeai as genai
+    GEMINI_AVAILABLE = True
+except ImportError:
+    GEMINI_AVAILABLE = False
+    logger.warning("⚠️ google-generativeai not installed, using fallback responses")
+
 # Create logs directory (use /tmp for cloud platforms)
 logs_dir = Path("/tmp/logs")
 logs_dir.mkdir(parents=True, exist_ok=True)
@@ -187,7 +195,7 @@ class HealthHandler(BaseHTTPRequestHandler):
             self.end_headers()
 
     def send_whatsapp_auto_response(self, to_number, message_content, contact_name):
-        """Send automatic WhatsApp response"""
+        """Send intelligent WhatsApp response using Gemini AI"""
         try:
             access_token = os.getenv('WHATSAPP_ACCESS_TOKEN', '')
             phone_id = os.getenv('WHATSAPP_PHONE_NUMBER_ID', '')
@@ -196,8 +204,8 @@ class HealthHandler(BaseHTTPRequestHandler):
                 logger.warning("⚠️ WhatsApp credentials not configured")
                 return
 
-            # Simple auto-response
-            response_text = f"Hi {contact_name}! Thanks for your message. I've received it and will get back to you shortly. 🤖"
+            # Generate intelligent response using Gemini
+            response_text = self.generate_intelligent_response(message_content, contact_name)
 
             url = f"https://graph.facebook.com/v18.0/{phone_id}/messages"
             headers = {
@@ -218,12 +226,78 @@ class HealthHandler(BaseHTTPRequestHandler):
             response = requests.post(url, json=payload, headers=headers, timeout=10)
 
             if response.status_code == 200:
-                logger.info(f"✅ Auto-response sent to {contact_name}")
+                logger.info(f"✅ Intelligent response sent to {contact_name}")
             else:
-                logger.warning(f"⚠️ Failed to send auto-response: {response.status_code}")
+                logger.warning(f"⚠️ Failed to send response: {response.status_code}")
 
         except Exception as e:
             logger.error(f"❌ Auto-response error: {e}")
+
+    def generate_intelligent_response(self, message_content, contact_name):
+        """Generate intelligent response using Gemini AI"""
+        try:
+            gemini_api_key = os.getenv('GEMINI_API_KEY', '')
+
+            if not gemini_api_key or not GEMINI_AVAILABLE:
+                # Fallback to simple response
+                return f"Hi {contact_name}! Thanks for your message. I've received it and will get back to you shortly. 🤖"
+
+            # Configure Gemini
+            genai.configure(api_key=gemini_api_key)
+            model = genai.GenerativeModel('gemini-pro')
+
+            # Business context and instructions
+            system_context = """You are an AI assistant representing Nahead Jokhio's business.
+
+BUSINESS INFORMATION:
+- Owner: Nahead Jokhio
+- LinkedIn: https://www.linkedin.com/in/nahead-jokhio
+- GitHub: https://github.com/nahead/Hackathon0
+- Expertise: AI Development, Automation, Cloud Computing, Full-Stack Development
+- Current Project: Personal AI Employee System (Hackathon 0 submission)
+- Services: AI automation solutions, custom software development, cloud deployments
+- Location: Pakistan
+- Contact: Available via LinkedIn, WhatsApp, Email
+
+CURRENT ACHIEVEMENT:
+- Built production-ready AI Employee system running 24/7 on Render.com
+- Achieved Gold Tier (100%) and Platinum Tier (89%) in Personal AI Employee Hackathon
+- System handles: Email, WhatsApp, LinkedIn, Twitter, Facebook, Instagram
+- Tech Stack: Claude Code, Python, MCP servers, Gemini AI
+- Live Demo: https://ai-employee-cloud.onrender.com
+
+YOUR ROLE:
+- Respond professionally and helpfully to WhatsApp messages
+- Provide information about services and projects
+- Handle inquiries about AI automation, development work, or collaboration
+- Be friendly, concise, and action-oriented
+- If it's a business inquiry, express interest and offer to connect
+- If it's a technical question, provide helpful guidance
+- Keep responses under 200 characters when possible
+
+RESPONSE GUIDELINES:
+- Greet by name if provided
+- Acknowledge their message
+- Provide relevant information based on their query
+- Offer next steps (schedule call, share links, etc.)
+- Be warm but professional
+- Use emojis sparingly (1-2 max)
+"""
+
+            # Generate response
+            prompt = f"{system_context}\n\nCUSTOMER MESSAGE from {contact_name}:\n{message_content}\n\nGenerate a helpful, professional response:"
+
+            response = model.generate_content(prompt)
+
+            if response and response.text:
+                return response.text.strip()
+            else:
+                return f"Hi {contact_name}! Thanks for reaching out. I'll get back to you shortly! 👋"
+
+        except Exception as e:
+            logger.error(f"❌ Gemini API error: {e}")
+            # Fallback response
+            return f"Hi {contact_name}! Thanks for your message. I've received it and will respond soon. 🤖"
 
     def get_pending_emails(self):
         """Get list of pending emails"""
