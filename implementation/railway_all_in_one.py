@@ -1408,6 +1408,28 @@ class RailwayOrchestrator:
         logger.info("✅ Environment variables configured")
         return True
 
+    def linkedin_poster_service(self):
+        """Background LinkedIn posting - checks every 60 seconds"""
+        logger.info("📱 Starting LinkedIn poster service (60-second checks)...")
+
+        try:
+            vault_sync = CloudVaultSync(self.vault_path)
+
+            while True:
+                try:
+                    # Check for LinkedIn posts every minute
+                    vault_sync.process_approved_linkedin_posts()
+
+                    logger.info("📱 LinkedIn check heartbeat")
+                    time.sleep(60)  # 1 minute
+
+                except Exception as e:
+                    logger.error(f"❌ LinkedIn poster error: {e}")
+                    time.sleep(60)
+
+        except Exception as e:
+            logger.error(f"❌ LinkedIn poster initialization failed: {e}")
+
     def vault_sync_service(self):
         """Background vault synchronization"""
         logger.info("🔄 Starting vault sync service...")
@@ -1428,9 +1450,6 @@ class RailwayOrchestrator:
 
                     # Process approved emails (send them)
                     vault_sync.process_approved_emails()
-
-                    # Process approved LinkedIn posts (publish them)
-                    vault_sync.process_approved_linkedin_posts()
 
                     # Process approved WhatsApp responses (send them)
                     vault_sync.process_approved_whatsapp_responses()
@@ -1484,6 +1503,10 @@ class RailwayOrchestrator:
         # Start Gmail watcher in background
         gmail_thread = threading.Thread(target=self.gmail_watcher_service, daemon=True)
         gmail_thread.start()
+
+        # Start LinkedIn poster in background (checks every 60 seconds)
+        linkedin_thread = threading.Thread(target=self.linkedin_poster_service, daemon=True)
+        linkedin_thread.start()
 
         logger.info("✅ Background services started")
 
