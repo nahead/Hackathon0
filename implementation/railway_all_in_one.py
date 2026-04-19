@@ -247,21 +247,40 @@ class HealthHandler(BaseHTTPRequestHandler):
             logger.error(f"❌ Auto-response error: {e}")
 
     def generate_intelligent_response(self, message_content, contact_name):
-        """Generate intelligent response using Gemini AI - only for business inquiries"""
+        """Generate intelligent response using Gemini AI - business card for greetings, skip irrelevant"""
         try:
-            # Check if message is just a casual greeting (ignore these)
-            casual_greetings = ['hi', 'hello', 'hey', 'hlo', 'hii', 'helo', 'test', 'testing']
             message_lower = message_content.lower().strip()
 
-            if message_lower in casual_greetings or len(message_content.strip()) < 3:
-                # Don't respond to casual greetings or very short messages
-                logger.info(f"⏭️ Skipping casual greeting from {contact_name}")
-                return None
+            # Check if it's a greeting - send complete business card
+            casual_greetings = ['hi', 'hello', 'hey', 'hlo', 'hii', 'helo', 'assalam', 'salam', 'good morning', 'good evening']
+
+            if any(greeting in message_lower for greeting in casual_greetings) and len(message_content.strip()) < 20:
+                # Send complete business card for greetings
+                business_card = f"""Hi {contact_name}! 👋
+
+I'm Nahead Jokhio's AI Assistant. Here's how you can connect:
+
+📱 WhatsApp: +92 312 2955972
+📧 Email: naheadj@gmail.com
+🔗 LinkedIn: linkedin.com/in/nahead
+💼 Portfolio: my-personal-porfolio-navy.vercel.app
+
+🚀 Services:
+• AI Automation Solutions
+• Custom Software Development
+• Cloud Deployments & DevOps
+• Full-Stack Development
+
+Currently built a production AI Employee system running 24/7!
+
+How can I help you today?"""
+
+                logger.info(f"✅ Sending business card to {contact_name}")
+                return business_card
 
             gemini_api_key = os.getenv('GEMINI_API_KEY', '')
 
             if not gemini_api_key or not GEMINI_AVAILABLE:
-                # Fallback: only respond to business inquiries
                 return None
 
             # Configure Gemini
@@ -292,70 +311,34 @@ EXPERTISE & SKILLS:
 
 SERVICES OFFERED:
 1. AI Automation Solutions
-   - Custom AI agents and chatbots
-   - Workflow automation systems
-   - Intelligent business process automation
-
 2. Custom Software Development
-   - Web applications (Full-stack)
-   - API development and integration
-   - Database design and optimization
-
 3. Cloud Deployments
-   - 24/7 production systems
-   - Scalable cloud architecture
-   - DevOps and CI/CD pipelines
-
 4. AI Integration Services
-   - Claude API integration
-   - Gemini AI implementation
-   - Multi-platform AI systems
 
 CURRENT ACHIEVEMENT:
-- Built production-ready AI Employee system running 24/7 on Render.com
-- Achieved Gold Tier (100%) and Platinum Tier (89%) in Personal AI Employee Hackathon 0
-- System autonomously handles: Email, WhatsApp, LinkedIn, Twitter, Facebook, Instagram
-- Tech Stack: Claude Code, Python, Gemini AI, MCP servers, Git automation
+- Built production-ready AI Employee system running 24/7
+- Achieved Gold Tier (100%) + Platinum Tier (89%) in Hackathon
 - Live Demo: https://ai-employee-cloud.onrender.com
-- Open Source: https://github.com/nahead/Hackathon0
-
-PROJECT HIGHLIGHTS:
-- 32 Python implementation files
-- 15 specialized Agent Skills
-- 5 MCP servers for external integrations
-- 6 platform integrations (WhatsApp, Email, LinkedIn, Twitter, Facebook, Instagram)
-- Cloud/Local split architecture (Platinum Tier)
-- Complete audit logging and security
-- 24/7 autonomous operation
-
-AVAILABILITY:
-- Open for freelance projects
-- Available for consulting
-- Interested in collaboration opportunities
-- Can discuss projects via WhatsApp, Email, or LinkedIn
 
 YOUR ROLE:
-- ONLY respond to business inquiries, project questions, or collaboration requests
-- DO NOT respond to casual greetings like "hi", "hello", "hey" - return "SKIP" for these
-- If message is about services, projects, AI, automation, or collaboration → respond professionally
-- If message is just a greeting or test → return "SKIP"
-- Keep responses under 200 characters when possible
-- Be professional and action-oriented
+- Analyze if the message is a RELEVANT business inquiry
+- RELEVANT: Questions about services, projects, AI, automation, collaboration, pricing, availability, technical questions
+- IRRELEVANT: Random questions, jokes, personal questions unrelated to business, spam, nonsense
+- If RELEVANT → provide helpful, professional response with contact details when appropriate
+- If IRRELEVANT → return exactly "SKIP"
 
 RESPONSE GUIDELINES:
-First, analyze if this is a business inquiry or just a casual greeting.
-If casual greeting/test → return exactly "SKIP"
-If business inquiry → provide helpful, professional response with:
-  - Relevant information about services/expertise
-  - Contact details if they ask how to reach out
-  - Portfolio/demo links if discussing projects
-  - Offer to schedule a call or discuss further
-  - Be warm but professional
-  - Use emojis sparingly (1-2 max)
+Analyze the message carefully:
+- Is it asking about services/projects/collaboration? → Respond professionally
+- Is it a technical question related to your expertise? → Provide helpful answer
+- Is it asking how to contact/connect? → Share contact details
+- Is it completely unrelated to business (weather, jokes, random topics)? → return "SKIP"
+
+Keep responses under 250 characters. Be professional and include relevant contact info when needed.
 """
 
             # Generate response
-            prompt = f"{system_context}\n\nCUSTOMER MESSAGE from {contact_name}:\n{message_content}\n\nAnalyze and respond (or return SKIP):"
+            prompt = f"{system_context}\n\nCUSTOMER MESSAGE from {contact_name}:\n{message_content}\n\nAnalyze and respond (or return SKIP if irrelevant):"
 
             response = model.generate_content(prompt)
 
@@ -364,7 +347,7 @@ If business inquiry → provide helpful, professional response with:
 
                 # Check if AI decided to skip
                 if response_text.upper() == "SKIP" or "SKIP" in response_text.upper()[:10]:
-                    logger.info(f"⏭️ AI decided to skip message from {contact_name}")
+                    logger.info(f"⏭️ Skipping irrelevant message from {contact_name}")
                     return None
 
                 return response_text
