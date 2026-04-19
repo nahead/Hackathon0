@@ -38,6 +38,104 @@ logs_dir.mkdir(parents=True, exist_ok=True)
 processed_messages = set()
 processed_messages_lock = threading.Lock()
 
+# Analytics tracking
+class AnalyticsTracker:
+    def __init__(self):
+        self.metrics = {
+            'whatsapp': {
+                'total_messages': 0,
+                'business_inquiries': 0,
+                'casual_greetings': 0,
+                'skipped_messages': 0,
+                'responses_sent': 0,
+                'unique_contacts': set(),
+                'last_message_time': None
+            },
+            'email': {
+                'emails_checked': 0,
+                'drafts_created': 0,
+                'emails_sent': 0,
+                'last_check_time': None
+            },
+            'linkedin': {
+                'posts_published': 0,
+                'posts_pending': 0,
+                'last_post_time': None,
+                'last_check_time': None
+            },
+            'system': {
+                'start_time': datetime.now(),
+                'vault_syncs': 0,
+                'errors': 0,
+                'last_error': None
+            }
+        }
+        self.lock = threading.Lock()
+
+    def track_whatsapp_message(self, contact_name, message_type='received'):
+        with self.lock:
+            self.metrics['whatsapp']['total_messages'] += 1
+            self.metrics['whatsapp']['unique_contacts'].add(contact_name)
+            self.metrics['whatsapp']['last_message_time'] = datetime.now()
+
+            if message_type == 'business':
+                self.metrics['whatsapp']['business_inquiries'] += 1
+            elif message_type == 'greeting':
+                self.metrics['whatsapp']['casual_greetings'] += 1
+            elif message_type == 'skipped':
+                self.metrics['whatsapp']['skipped_messages'] += 1
+
+    def track_whatsapp_response(self):
+        with self.lock:
+            self.metrics['whatsapp']['responses_sent'] += 1
+
+    def track_email_check(self):
+        with self.lock:
+            self.metrics['email']['emails_checked'] += 1
+            self.metrics['email']['last_check_time'] = datetime.now()
+
+    def track_email_sent(self):
+        with self.lock:
+            self.metrics['email']['emails_sent'] += 1
+
+    def track_linkedin_post(self):
+        with self.lock:
+            self.metrics['linkedin']['posts_published'] += 1
+            self.metrics['linkedin']['last_post_time'] = datetime.now()
+
+    def track_linkedin_check(self, pending_count=0):
+        with self.lock:
+            self.metrics['linkedin']['last_check_time'] = datetime.now()
+            self.metrics['linkedin']['posts_pending'] = pending_count
+
+    def track_vault_sync(self):
+        with self.lock:
+            self.metrics['system']['vault_syncs'] += 1
+
+    def track_error(self, error_msg):
+        with self.lock:
+            self.metrics['system']['errors'] += 1
+            self.metrics['system']['last_error'] = {
+                'message': str(error_msg),
+                'time': datetime.now()
+            }
+
+    def get_metrics(self):
+        with self.lock:
+            # Convert sets to counts for JSON serialization
+            metrics_copy = json.loads(json.dumps(self.metrics, default=str))
+            metrics_copy['whatsapp']['unique_contacts'] = len(self.metrics['whatsapp']['unique_contacts'])
+
+            # Calculate uptime
+            uptime = datetime.now() - self.metrics['system']['start_time']
+            metrics_copy['system']['uptime_seconds'] = int(uptime.total_seconds())
+            metrics_copy['system']['uptime_formatted'] = str(uptime).split('.')[0]
+
+            return metrics_copy
+
+# Global analytics tracker
+analytics = AnalyticsTracker()
+
 # Global log buffer for live logs display
 class LogBuffer:
     def __init__(self, max_size=100):
@@ -92,6 +190,14 @@ class HealthHandler(BaseHTTPRequestHandler):
                 }
             }
             self.wfile.write(json.dumps(health).encode())
+        elif self.path == '/analytics':
+            self.send_response(200)
+            self.send_header('Content-type', 'application/json')
+            self.send_header('Access-Control-Allow-Origin', '*')
+            self.end_headers()
+
+            metrics = analytics.get_metrics()
+            self.wfile.write(json.dumps(metrics).encode())
         elif self.path == '/logs':
             self.send_response(200)
             self.send_header('Content-type', 'application/json')
@@ -194,6 +300,9 @@ class HealthHandler(BaseHTTPRequestHandler):
 
                     logger.info(f"📱 From: {contact_name} ({from_number}): {content[:50]}...")
 
+                    # Track analytics
+                    analytics.track_whatsapp_message(contact_name, 'received')
+
                     # Auto-respond intelligently (only for business inquiries)
                     self.send_whatsapp_auto_response(from_number, content, contact_name)
 
@@ -240,6 +349,7 @@ class HealthHandler(BaseHTTPRequestHandler):
 
             if response.status_code == 200:
                 logger.info(f"✅ Intelligent response sent to {contact_name}")
+                analytics.track_whatsapp_response()
             else:
                 logger.warning(f"⚠️ Failed to send response: {response.status_code}")
 
@@ -278,6 +388,7 @@ Built a production AI Employee system that autonomously handles Email, WhatsApp,
 💡 Looking for AI automation or custom development? Let's discuss your project!"""
 
                 logger.info(f"✅ Sending business card to {contact_name}")
+                analytics.track_whatsapp_message(contact_name, 'greeting')
                 return business_card
 
             gemini_api_key = os.getenv('GEMINI_API_KEY', '')
@@ -350,8 +461,10 @@ Keep responses under 250 characters. Be professional and include relevant contac
                 # Check if AI decided to skip
                 if response_text.upper() == "SKIP" or "SKIP" in response_text.upper()[:10]:
                     logger.info(f"⏭️ Skipping irrelevant message from {contact_name}")
+                    analytics.track_whatsapp_message(contact_name, 'skipped')
                     return None
 
+                analytics.track_whatsapp_message(contact_name, 'business')
                 return response_text
             else:
                 return None
@@ -392,13 +505,13 @@ Keep responses under 250 characters. Be professional and include relevant contac
             return []
 
     def get_dashboard_html(self):
-        """Generate professional dashboard HTML"""
+        """Generate professional dashboard HTML with analytics"""
         return """<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Employee - Live Dashboard</title>
+    <title>AI Employee - Analytics Dashboard</title>
     <style>
         * {
             margin: 0;
@@ -415,25 +528,328 @@ Keep responses under 250 characters. Be professional and include relevant contac
         }
 
         .container {
-            max-width: 1200px;
+            max-width: 1400px;
             margin: 0 auto;
         }
 
         .header {
             text-align: center;
             color: white;
-            margin-bottom: 40px;
+            margin-bottom: 30px;
             animation: fadeIn 1s ease-in;
         }
 
         .header h1 {
-            font-size: 3em;
+            font-size: 2.5em;
             margin-bottom: 10px;
             text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
         }
 
         .header .subtitle {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .status-badge {
+            display: inline-block;
+            background: #10b981;
+            color: white;
+            padding: 8px 20px;
+            border-radius: 20px;
+            font-weight: bold;
+            margin-top: 15px;
+            animation: pulse 2s infinite;
+        }
+
+        .analytics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .metric-card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            transition: transform 0.3s ease;
+        }
+
+        .metric-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .metric-card h3 {
+            color: #667eea;
+            margin-bottom: 15px;
             font-size: 1.2em;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .metric-value {
+            font-size: 2.5em;
+            font-weight: bold;
+            color: #10b981;
+            margin-bottom: 10px;
+        }
+
+        .metric-label {
+            color: #666;
+            font-size: 0.9em;
+        }
+
+        .sub-metrics {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #f0f0f0;
+        }
+
+        .sub-metric {
+            text-align: center;
+        }
+
+        .sub-metric-value {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .sub-metric-label {
+            font-size: 0.8em;
+            color: #999;
+            margin-top: 5px;
+        }
+
+        .logs-section {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-top: 20px;
+        }
+
+        .logs-section h2 {
+            color: #667eea;
+            margin-bottom: 15px;
+        }
+
+        .logs-container {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 15px;
+            border-radius: 8px;
+            max-height: 400px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85em;
+        }
+
+        .log-entry {
+            padding: 5px 0;
+            border-bottom: 1px solid #333;
+        }
+
+        .log-timestamp {
+            color: #858585;
+            margin-right: 10px;
+        }
+
+        .log-level-INFO { color: #4ade80; }
+        .log-level-WARNING { color: #fbbf24; }
+        .log-level-ERROR { color: #f87171; }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        .last-activity {
+            font-size: 0.85em;
+            color: #999;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🤖 AI Employee Analytics</h1>
+            <p class="subtitle">Real-time Performance Dashboard</p>
+            <div class="status-badge">● LIVE</div>
+        </div>
+
+        <div class="analytics-grid">
+            <!-- WhatsApp Metrics -->
+            <div class="metric-card">
+                <h3>📱 WhatsApp</h3>
+                <div class="metric-value" id="whatsapp-total">0</div>
+                <div class="metric-label">Total Messages</div>
+                <div class="sub-metrics">
+                    <div class="sub-metric">
+                        <div class="sub-metric-value" id="whatsapp-business">0</div>
+                        <div class="sub-metric-label">Business</div>
+                    </div>
+                    <div class="sub-metric">
+                        <div class="sub-metric-value" id="whatsapp-responses">0</div>
+                        <div class="sub-metric-label">Responses</div>
+                    </div>
+                    <div class="sub-metric">
+                        <div class="sub-metric-value" id="whatsapp-contacts">0</div>
+                        <div class="sub-metric-label">Contacts</div>
+                    </div>
+                    <div class="sub-metric">
+                        <div class="sub-metric-value" id="whatsapp-skipped">0</div>
+                        <div class="sub-metric-label">Skipped</div>
+                    </div>
+                </div>
+                <div class="last-activity" id="whatsapp-last">No activity yet</div>
+            </div>
+
+            <!-- Email Metrics -->
+            <div class="metric-card">
+                <h3>📧 Email</h3>
+                <div class="metric-value" id="email-checks">0</div>
+                <div class="metric-label">Inbox Checks</div>
+                <div class="sub-metrics">
+                    <div class="sub-metric">
+                        <div class="sub-metric-value" id="email-sent">0</div>
+                        <div class="sub-metric-label">Sent</div>
+                    </div>
+                    <div class="sub-metric">
+                        <div class="sub-metric-value" id="email-drafts">0</div>
+                        <div class="sub-metric-label">Drafts</div>
+                    </div>
+                </div>
+                <div class="last-activity" id="email-last">No activity yet</div>
+            </div>
+
+            <!-- LinkedIn Metrics -->
+            <div class="metric-card">
+                <h3>💼 LinkedIn</h3>
+                <div class="metric-value" id="linkedin-published">0</div>
+                <div class="metric-label">Posts Published</div>
+                <div class="sub-metrics">
+                    <div class="sub-metric">
+                        <div class="sub-metric-value" id="linkedin-pending">0</div>
+                        <div class="sub-metric-label">Pending</div>
+                    </div>
+                </div>
+                <div class="last-activity" id="linkedin-last">No activity yet</div>
+            </div>
+
+            <!-- System Metrics -->
+            <div class="metric-card">
+                <h3>⚙️ System</h3>
+                <div class="metric-value" id="system-uptime">0h 0m</div>
+                <div class="metric-label">Uptime</div>
+                <div class="sub-metrics">
+                    <div class="sub-metric">
+                        <div class="sub-metric-value" id="system-syncs">0</div>
+                        <div class="sub-metric-label">Vault Syncs</div>
+                    </div>
+                    <div class="sub-metric">
+                        <div class="sub-metric-value" id="system-errors">0</div>
+                        <div class="sub-metric-label">Errors</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Live Logs -->
+        <div class="logs-section">
+            <h2>📋 Live Activity Logs</h2>
+            <div class="logs-container" id="logs"></div>
+        </div>
+    </div>
+
+    <script>
+        function formatTime(isoString) {
+            if (!isoString) return 'Never';
+            const date = new Date(isoString);
+            const now = new Date();
+            const diff = Math.floor((now - date) / 1000);
+
+            if (diff < 60) return `${diff}s ago`;
+            if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+            if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+            return date.toLocaleString();
+        }
+
+        async function fetchAnalytics() {
+            try {
+                const response = await fetch('/analytics');
+                const data = await response.json();
+
+                // WhatsApp metrics
+                document.getElementById('whatsapp-total').textContent = data.whatsapp.total_messages;
+                document.getElementById('whatsapp-business').textContent = data.whatsapp.business_inquiries;
+                document.getElementById('whatsapp-responses').textContent = data.whatsapp.responses_sent;
+                document.getElementById('whatsapp-contacts').textContent = data.whatsapp.unique_contacts;
+                document.getElementById('whatsapp-skipped').textContent = data.whatsapp.skipped_messages;
+                document.getElementById('whatsapp-last').textContent = 'Last: ' + formatTime(data.whatsapp.last_message_time);
+
+                // Email metrics
+                document.getElementById('email-checks').textContent = data.email.emails_checked;
+                document.getElementById('email-sent').textContent = data.email.emails_sent;
+                document.getElementById('email-drafts').textContent = data.email.drafts_created;
+                document.getElementById('email-last').textContent = 'Last check: ' + formatTime(data.email.last_check_time);
+
+                // LinkedIn metrics
+                document.getElementById('linkedin-published').textContent = data.linkedin.posts_published;
+                document.getElementById('linkedin-pending').textContent = data.linkedin.posts_pending;
+                document.getElementById('linkedin-last').textContent = 'Last post: ' + formatTime(data.linkedin.last_post_time);
+
+                // System metrics
+                document.getElementById('system-uptime').textContent = data.system.uptime_formatted;
+                document.getElementById('system-syncs').textContent = data.system.vault_syncs;
+                document.getElementById('system-errors').textContent = data.system.errors;
+
+            } catch (error) {
+                console.error('Failed to fetch analytics:', error);
+            }
+        }
+
+        async function fetchLogs() {
+            try {
+                const response = await fetch('/logs');
+                const logs = await response.json();
+                const logsContainer = document.getElementById('logs');
+
+                logsContainer.innerHTML = logs.map(log => `
+                    <div class="log-entry">
+                        <span class="log-timestamp">${new Date(log.timestamp).toLocaleTimeString()}</span>
+                        <span class="log-level-${log.level}">[${log.level}]</span>
+                        ${log.message}
+                    </div>
+                `).join('');
+
+                logsContainer.scrollTop = logsContainer.scrollHeight;
+            } catch (error) {
+                console.error('Failed to fetch logs:', error);
+            }
+        }
+
+        // Initial fetch
+        fetchAnalytics();
+        fetchLogs();
+
+        // Auto-refresh every 3 seconds
+        setInterval(fetchAnalytics, 3000);
+        setInterval(fetchLogs, 3000);
+    </script>
+</body>
+</html>"""
             opacity: 0.9;
         }
 
@@ -988,6 +1404,8 @@ class CloudGmailWatcher:
             mail.select('inbox')
             status, messages = mail.search(None, 'UNSEEN')
 
+            analytics.track_email_check()
+
             if status == 'OK':
                 email_ids = messages[0].split()
                 if email_ids:
@@ -997,6 +1415,7 @@ class CloudGmailWatcher:
 
         except Exception as e:
             logger.warning(f"⚠️ Error checking emails: {e}")
+            analytics.track_error(f"Email check error: {e}")
 
     def process_email(self, mail, email_id):
         """Process individual email"""
@@ -1313,6 +1732,7 @@ Needs_Action -> Processing -> **Pending_Approval** -> Approved -> Done
                     success = self.email_sender.send_email(to_email, reply_subject, response_body)
 
                     if success:
+                        analytics.track_email_sent()
                         # Move to Done folder
                         done_path.mkdir(parents=True, exist_ok=True)
                         done_file = done_path / file_path.name
@@ -1337,6 +1757,8 @@ Needs_Action -> Processing -> **Pending_Approval** -> Approved -> Done
 
         # Get all approved LinkedIn post files
         linkedin_posts = list(approved_path.glob("LINKEDIN_POST_*.md"))
+
+        analytics.track_linkedin_check(len(linkedin_posts))
 
         if not linkedin_posts:
             return
@@ -1384,6 +1806,7 @@ Needs_Action -> Processing -> **Pending_Approval** -> Approved -> Done
                     done_file = done_path / post_file.name
                     post_file.rename(done_file)
                     logger.info(f"✅ LinkedIn post published and moved to Done: {post_file.name}")
+                    analytics.track_linkedin_post()
                 else:
                     logger.warning(f"❌ Failed to post: {post_file.name}")
 
@@ -1712,11 +2135,13 @@ class RailwayOrchestrator:
                     # Push any local changes
                     vault_sync.commit_and_push_changes()
 
+                    analytics.track_vault_sync()
                     logger.info("💾 Vault sync heartbeat")
                     time.sleep(300)  # 5 minutes
 
                 except Exception as e:
                     logger.error(f"❌ Vault sync error: {e}")
+                    analytics.track_error(f"Vault sync error: {e}")
                     time.sleep(60)
 
         except Exception as e:
