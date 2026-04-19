@@ -30,6 +30,15 @@ except ImportError:
     GEMINI_AVAILABLE = False
     logger.warning("⚠️ google-generativeai not installed, using fallback responses")
 
+# Conversation History
+try:
+    from implementation.conversation_history import ConversationHistory
+    conversation_history = ConversationHistory("/tmp/whatsapp_conversations.json")
+    HISTORY_AVAILABLE = True
+except ImportError:
+    HISTORY_AVAILABLE = False
+    conversation_history = None
+
 # Create logs directory (use /tmp for cloud platforms)
 logs_dir = Path("/tmp/logs")
 logs_dir.mkdir(parents=True, exist_ok=True)
@@ -326,8 +335,8 @@ class HealthHandler(BaseHTTPRequestHandler):
                 logger.warning("⚠️ WhatsApp credentials not configured")
                 return
 
-            # Generate intelligent response using Gemini
-            response_text = self.generate_intelligent_response(message_content, contact_name)
+            # Generate intelligent response using Gemini with conversation history
+            response_text = self.generate_intelligent_response(message_content, contact_name, to_number)
 
             url = f"https://graph.facebook.com/v18.0/{phone_id}/messages"
             headers = {
@@ -356,8 +365,8 @@ class HealthHandler(BaseHTTPRequestHandler):
         except Exception as e:
             logger.error(f"❌ Auto-response error: {e}")
 
-    def generate_intelligent_response(self, message_content, contact_name):
-        """Generate intelligent response using Gemini AI - business card for greetings, skip irrelevant"""
+    def generate_intelligent_response(self, message_content, contact_name, contact_number):
+        """Generate intelligent response using Gemini AI with conversation history"""
         try:
             message_lower = message_content.lower().strip()
 
@@ -389,12 +398,26 @@ Built a production AI Employee system that autonomously handles Email, WhatsApp,
 
                 logger.info(f"✅ Sending business card to {contact_name}")
                 analytics.track_whatsapp_message(contact_name, 'greeting')
+
+                # Save to conversation history
+                if HISTORY_AVAILABLE and conversation_history:
+                    conversation_history.add_message(contact_number, contact_name, message_content, business_card)
+
                 return business_card
 
             gemini_api_key = os.getenv('GEMINI_API_KEY', '')
 
             if not gemini_api_key or not GEMINI_AVAILABLE:
                 return None
+
+            # Get conversation history for context
+            context_summary = ""
+            if HISTORY_AVAILABLE and conversation_history:
+                context_summary = conversation_history.get_context_summary(contact_number)
+                contact_stats = conversation_history.get_contact_stats(contact_number)
+
+                if contact_stats['status'] == 'returning':
+                    logger.info(f"📚 Retrieved conversation history for {contact_name} ({contact_stats['total_messages']} messages)")
 
             # Configure Gemini
             genai.configure(api_key=gemini_api_key)
@@ -459,6 +482,10 @@ Analyze the message carefully:
 Keep responses under 250 characters. Be professional and include relevant contact info when needed.
 """
 
+            # Add conversation history to prompt if available
+            if context_summary and context_summary != "No previous conversation history.":
+                system_context += f"\n\n{context_summary}\n\nIMPORTANT: Use the conversation history above to provide context-aware responses. Reference previous discussions when relevant."
+
             # Generate response
             prompt = f"{system_context}\n\nCUSTOMER MESSAGE from {contact_name}:\n{message_content}\n\nAnalyze and respond (or return SKIP if irrelevant):"
 
@@ -474,6 +501,11 @@ Keep responses under 250 characters. Be professional and include relevant contac
                     return None
 
                 analytics.track_whatsapp_message(contact_name, 'business')
+
+                # Save to conversation history
+                if HISTORY_AVAILABLE and conversation_history:
+                    conversation_history.add_message(contact_number, contact_name, message_content, response_text)
+
                 return response_text
             else:
                 return None
