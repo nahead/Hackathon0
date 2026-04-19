@@ -66,6 +66,15 @@ except ImportError as e:
     BROADCAST_AVAILABLE = False
     broadcast_system = None
 
+# Advanced Analytics
+try:
+    from advanced_analytics import AdvancedAnalytics
+    advanced_analytics = AdvancedAnalytics("/tmp/advanced_analytics.json")
+    ANALYTICS_AVAILABLE = True
+except ImportError as e:
+    ANALYTICS_AVAILABLE = False
+    advanced_analytics = None
+
 # Create logs directory (use /tmp for cloud platforms)
 logs_dir = Path("/tmp/logs")
 logs_dir.mkdir(parents=True, exist_ok=True)
@@ -347,6 +356,18 @@ class HealthHandler(BaseHTTPRequestHandler):
                 self.wfile.write(json.dumps(stats).encode())
             else:
                 self.wfile.write(json.dumps({'error': 'Broadcast system not available'}).encode())
+        elif self.path == '/api/analytics/advanced':
+            # Get advanced analytics report
+            self.send_response(200)
+            self.send_header('Content-type', 'application/json')
+            self.send_header('Access-Control-Allow-Origin', '*')
+            self.end_headers()
+
+            if ANALYTICS_AVAILABLE and advanced_analytics:
+                report = advanced_analytics.get_comprehensive_report()
+                self.wfile.write(json.dumps(report).encode())
+            else:
+                self.wfile.write(json.dumps({'error': 'Advanced analytics not available'}).encode())
         elif self.path.startswith('/webhook/whatsapp'):
             # WhatsApp webhook verification (GET request)
             self.handle_whatsapp_verification()
@@ -501,8 +522,18 @@ class HealthHandler(BaseHTTPRequestHandler):
                     # Track analytics
                     analytics.track_whatsapp_message(contact_name, 'received')
 
+                    # Track advanced analytics - message received
+                    if ANALYTICS_AVAILABLE and advanced_analytics:
+                        advanced_analytics.track_message_received(from_number)
+
+                    # Check if this is a new lead
+                    if CRM_AVAILABLE and lead_crm and from_number not in lead_crm.leads:
+                        if ANALYTICS_AVAILABLE and advanced_analytics:
+                            advanced_analytics.track_new_lead(from_number, 'whatsapp')
+
                     # Auto-respond intelligently (only for business inquiries)
-                    self.send_whatsapp_auto_response(from_number, content, contact_name)
+                    response_start_time = time.time()
+                    self.send_whatsapp_auto_response(from_number, content, contact_name, response_start_time)
 
             self.send_response(200)
             self.send_header('Content-type', 'application/json')
@@ -514,9 +545,12 @@ class HealthHandler(BaseHTTPRequestHandler):
             self.send_response(500)
             self.end_headers()
 
-    def send_whatsapp_auto_response(self, to_number, message_content, contact_name):
+    def send_whatsapp_auto_response(self, to_number, message_content, contact_name, response_start_time=None):
         """Send intelligent WhatsApp response using Gemini AI"""
         try:
+            if response_start_time is None:
+                response_start_time = time.time()
+
             access_token = os.getenv('WHATSAPP_ACCESS_TOKEN', '')
             phone_id = os.getenv('WHATSAPP_PHONE_NUMBER_ID', '')
 
@@ -548,6 +582,11 @@ class HealthHandler(BaseHTTPRequestHandler):
             if response.status_code == 200:
                 logger.info(f"✅ Intelligent response sent to {contact_name}")
                 analytics.track_whatsapp_response()
+
+                # Track response time in advanced analytics
+                if ANALYTICS_AVAILABLE and advanced_analytics and response_start_time:
+                    response_time = time.time() - response_start_time
+                    advanced_analytics.track_response_sent(to_number, response_time)
             else:
                 logger.warning(f"⚠️ Failed to send response: {response.status_code}")
 
@@ -1133,6 +1172,43 @@ Keep responses under 250 characters. Be professional and include relevant contac
             </div>
         </div>
 
+        <!-- Advanced Analytics Section -->
+        <div class="logs-section">
+            <h2>📊 Advanced Analytics</h2>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-bottom: 20px;">
+                <div style="background: #f8f9fa; padding: 15px; border-radius: 8px;">
+                    <h3 style="color: #667eea; margin-bottom: 10px; font-size: 1em;">⚡ Response Times</h3>
+                    <div style="font-size: 0.9em; color: #666;">
+                        <div>Average: <strong id="analytics-avg-response">0s</strong></div>
+                        <div>Median: <strong id="analytics-median-response">0s</strong></div>
+                        <div>Total Responses: <strong id="analytics-response-count">0</strong></div>
+                    </div>
+                </div>
+                <div style="background: #f8f9fa; padding: 15px; border-radius: 8px;">
+                    <h3 style="color: #667eea; margin-bottom: 10px; font-size: 1em;">🎯 Conversion Rate</h3>
+                    <div style="font-size: 0.9em; color: #666;">
+                        <div>Rate: <strong id="analytics-conversion-rate">0%</strong></div>
+                        <div>Conversions: <strong id="analytics-conversions">0</strong></div>
+                        <div>Total Leads: <strong id="analytics-total-leads">0</strong></div>
+                    </div>
+                </div>
+                <div style="background: #f8f9fa; padding: 15px; border-radius: 8px;">
+                    <h3 style="color: #667eea; margin-bottom: 10px; font-size: 1em;">📍 Lead Sources</h3>
+                    <div style="font-size: 0.9em; color: #666;" id="analytics-lead-sources">
+                        <div>No data yet</div>
+                    </div>
+                </div>
+                <div style="background: #f8f9fa; padding: 15px; border-radius: 8px;">
+                    <h3 style="color: #667eea; margin-bottom: 10px; font-size: 1em;">💰 Revenue</h3>
+                    <div style="font-size: 0.9em; color: #666;">
+                        <div>Total: <strong id="analytics-revenue">$0</strong></div>
+                        <div>Avg per Conversion: <strong id="analytics-avg-value">$0</strong></div>
+                        <div>Period: 30 days</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Live Logs -->
         <div class="logs-section">
             <h2>📋 Live Activity Logs</h2>
@@ -1211,6 +1287,56 @@ Keep responses under 250 characters. Be professional and include relevant contac
             }
         }
 
+        async function fetchAdvancedAnalytics() {
+            try {
+                const response = await fetch('/api/analytics/advanced');
+                const data = await response.json();
+
+                // Response times
+                if (data.response_times) {
+                    document.getElementById('analytics-avg-response').textContent =
+                        data.response_times.average.toFixed(2) + 's';
+                    document.getElementById('analytics-median-response').textContent =
+                        data.response_times.median.toFixed(2) + 's';
+                    document.getElementById('analytics-response-count').textContent =
+                        data.response_times.count;
+                }
+
+                // Conversion rate
+                if (data.conversion_rate) {
+                    document.getElementById('analytics-conversion-rate').textContent =
+                        data.conversion_rate.conversion_rate + '%';
+                    document.getElementById('analytics-conversions').textContent =
+                        data.conversion_rate.total_conversions;
+                    document.getElementById('analytics-total-leads').textContent =
+                        data.conversion_rate.total_leads;
+                }
+
+                // Lead sources
+                if (data.lead_sources && data.lead_sources.sources) {
+                    const sourcesDiv = document.getElementById('analytics-lead-sources');
+                    const sources = data.lead_sources.sources;
+                    if (Object.keys(sources).length > 0) {
+                        sourcesDiv.innerHTML = Object.entries(sources)
+                            .map(([source, info]) =>
+                                `<div>${source}: <strong>${info.count}</strong> (${info.percentage}%)</div>`)
+                            .join('');
+                    }
+                }
+
+                // Revenue
+                if (data.revenue) {
+                    document.getElementById('analytics-revenue').textContent =
+                        '$' + data.revenue.total_revenue.toFixed(0);
+                    document.getElementById('analytics-avg-value').textContent =
+                        '$' + data.revenue.average_value.toFixed(0);
+                }
+
+            } catch (error) {
+                console.error('Failed to fetch advanced analytics:', error);
+            }
+        }
+
         async function fetchLogs() {
             try {
                 const response = await fetch('/logs');
@@ -1233,10 +1359,12 @@ Keep responses under 250 characters. Be professional and include relevant contac
 
         // Initial fetch
         fetchAnalytics();
+        fetchAdvancedAnalytics();
         fetchLogs();
 
         // Auto-refresh every 3 seconds
         setInterval(fetchAnalytics, 3000);
+        setInterval(fetchAdvancedAnalytics, 5000);  // Refresh advanced analytics every 5 seconds
         setInterval(fetchLogs, 3000);
     </script>
 </body>
