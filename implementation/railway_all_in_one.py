@@ -34,6 +34,10 @@ except ImportError:
 logs_dir = Path("/tmp/logs")
 logs_dir.mkdir(parents=True, exist_ok=True)
 
+# Track processed WhatsApp messages to avoid duplicates
+processed_messages = set()
+processed_messages_lock = threading.Lock()
+
 # Global log buffer for live logs display
 class LogBuffer:
     def __init__(self, max_size=100):
@@ -168,6 +172,15 @@ class HealthHandler(BaseHTTPRequestHandler):
 
             if messages:
                 for message in messages:
+                    message_id = message.get('id', '')
+
+                    # Check if already processed (prevent duplicates)
+                    with processed_messages_lock:
+                        if message_id in processed_messages:
+                            logger.info(f"⏭️ Skipping duplicate message: {message_id}")
+                            continue
+                        processed_messages.add(message_id)
+
                     from_number = message.get('from', '')
                     message_type = message.get('type', 'text')
 
@@ -181,7 +194,7 @@ class HealthHandler(BaseHTTPRequestHandler):
 
                     logger.info(f"📱 From: {contact_name} ({from_number}): {content[:50]}...")
 
-                    # Auto-respond immediately
+                    # Auto-respond intelligently (only for business inquiries)
                     self.send_whatsapp_auto_response(from_number, content, contact_name)
 
             self.send_response(200)
@@ -234,13 +247,22 @@ class HealthHandler(BaseHTTPRequestHandler):
             logger.error(f"❌ Auto-response error: {e}")
 
     def generate_intelligent_response(self, message_content, contact_name):
-        """Generate intelligent response using Gemini AI"""
+        """Generate intelligent response using Gemini AI - only for business inquiries"""
         try:
+            # Check if message is just a casual greeting (ignore these)
+            casual_greetings = ['hi', 'hello', 'hey', 'hlo', 'hii', 'helo', 'test', 'testing']
+            message_lower = message_content.lower().strip()
+
+            if message_lower in casual_greetings or len(message_content.strip()) < 3:
+                # Don't respond to casual greetings or very short messages
+                logger.info(f"⏭️ Skipping casual greeting from {contact_name}")
+                return None
+
             gemini_api_key = os.getenv('GEMINI_API_KEY', '')
 
             if not gemini_api_key or not GEMINI_AVAILABLE:
-                # Fallback to simple response
-                return f"Hi {contact_name}! Thanks for your message. I've received it and will get back to you shortly. 🤖"
+                # Fallback: only respond to business inquiries
+                return None
 
             # Configure Gemini
             genai.configure(api_key=gemini_api_key)
@@ -267,37 +289,39 @@ CURRENT ACHIEVEMENT:
 - Live Demo: https://ai-employee-cloud.onrender.com
 
 YOUR ROLE:
-- Respond professionally and helpfully to WhatsApp messages
-- Provide information about services and projects
-- Handle inquiries about AI automation, development work, or collaboration
-- Be friendly, concise, and action-oriented
-- If it's a business inquiry, express interest and offer to connect
-- If it's a technical question, provide helpful guidance
-- Keep responses under 200 characters when possible
+- ONLY respond to business inquiries, project questions, or collaboration requests
+- DO NOT respond to casual greetings like "hi", "hello", "hey" - return "SKIP" for these
+- If message is about services, projects, AI, automation, or collaboration → respond professionally
+- If message is just a greeting or test → return "SKIP"
+- Keep responses under 200 characters
+- Be professional and action-oriented
 
 RESPONSE GUIDELINES:
-- Greet by name if provided
-- Acknowledge their message
-- Provide relevant information based on their query
-- Offer next steps (schedule call, share links, etc.)
-- Be warm but professional
-- Use emojis sparingly (1-2 max)
+First, analyze if this is a business inquiry or just a casual greeting.
+If casual greeting/test → return exactly "SKIP"
+If business inquiry → provide helpful, professional response with relevant information
 """
 
             # Generate response
-            prompt = f"{system_context}\n\nCUSTOMER MESSAGE from {contact_name}:\n{message_content}\n\nGenerate a helpful, professional response:"
+            prompt = f"{system_context}\n\nCUSTOMER MESSAGE from {contact_name}:\n{message_content}\n\nAnalyze and respond (or return SKIP):"
 
             response = model.generate_content(prompt)
 
             if response and response.text:
-                return response.text.strip()
+                response_text = response.text.strip()
+
+                # Check if AI decided to skip
+                if response_text.upper() == "SKIP" or "SKIP" in response_text.upper()[:10]:
+                    logger.info(f"⏭️ AI decided to skip message from {contact_name}")
+                    return None
+
+                return response_text
             else:
-                return f"Hi {contact_name}! Thanks for reaching out. I'll get back to you shortly! 👋"
+                return None
 
         except Exception as e:
             logger.error(f"❌ Gemini API error: {e}")
-            # Fallback response
-            return f"Hi {contact_name}! Thanks for your message. I've received it and will respond soon. 🤖"
+            return None
 
     def get_pending_emails(self):
         """Get list of pending emails"""
