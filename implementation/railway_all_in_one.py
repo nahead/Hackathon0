@@ -39,6 +39,15 @@ except ImportError as e:
     HISTORY_AVAILABLE = False
     conversation_history = None
 
+# Lead CRM
+try:
+    from lead_crm import LeadCRM
+    lead_crm = LeadCRM("/tmp/leads_crm.json")
+    CRM_AVAILABLE = True
+except ImportError as e:
+    CRM_AVAILABLE = False
+    lead_crm = None
+
 # Create logs directory (use /tmp for cloud platforms)
 logs_dir = Path("/tmp/logs")
 logs_dir.mkdir(parents=True, exist_ok=True)
@@ -149,6 +158,28 @@ class AnalyticsTracker:
             uptime = datetime.now() - self.metrics['system']['start_time']
             metrics_copy['system']['uptime_seconds'] = int(uptime.total_seconds())
             metrics_copy['system']['uptime_formatted'] = str(uptime).split('.')[0]
+
+            # Add CRM statistics
+            if CRM_AVAILABLE and lead_crm:
+                try:
+                    metrics_copy['crm'] = lead_crm.get_stats()
+                except Exception as e:
+                    logger.error(f"Failed to get CRM stats: {e}")
+                    metrics_copy['crm'] = {
+                        'total_leads': 0,
+                        'hot_leads': 0,
+                        'warm_leads': 0,
+                        'cold_leads': 0,
+                        'needs_followup': 0
+                    }
+            else:
+                metrics_copy['crm'] = {
+                    'total_leads': 0,
+                    'hot_leads': 0,
+                    'warm_leads': 0,
+                    'cold_leads': 0,
+                    'needs_followup': 0
+                }
 
             return metrics_copy
 
@@ -456,6 +487,22 @@ Built a production AI Employee system that autonomously handles Email, WhatsApp,
                 if HISTORY_AVAILABLE and conversation_history:
                     conversation_history.add_message(contact_number, contact_name, message_content, business_card)
 
+                # Save to Lead CRM (greeting = low urgency, neutral sentiment)
+                if CRM_AVAILABLE and lead_crm:
+                    greeting_sentiment = {
+                        'is_urgent': False,
+                        'is_negative': False,
+                        'is_high_value': False,
+                        'priority': 'normal'
+                    }
+                    lead_crm.add_or_update_lead(
+                        phone=contact_number,
+                        name=contact_name,
+                        message=message_content,
+                        sentiment=greeting_sentiment,
+                        response=business_card
+                    )
+
                 return business_card
 
             gemini_api_key = os.getenv('GEMINI_API_KEY', '')
@@ -565,6 +612,17 @@ Keep responses under 250 characters. Be professional and include relevant contac
                 # Save to conversation history
                 if HISTORY_AVAILABLE and conversation_history:
                     conversation_history.add_message(contact_number, contact_name, message_content, response_text)
+
+                # Save to Lead CRM with sentiment data
+                if CRM_AVAILABLE and lead_crm:
+                    lead_crm.add_or_update_lead(
+                        phone=contact_number,
+                        name=contact_name,
+                        message=message_content,
+                        sentiment=sentiment,
+                        response=response_text
+                    )
+                    logger.info(f"💼 Lead updated in CRM: {contact_name}")
 
                 return response_text
             else:
@@ -865,6 +923,31 @@ Keep responses under 250 characters. Be professional and include relevant contac
                     </div>
                 </div>
             </div>
+
+            <!-- Lead CRM Metrics -->
+            <div class="metric-card">
+                <h3>💼 Lead CRM</h3>
+                <div class="metric-value" id="crm-total">0</div>
+                <div class="metric-label">Total Leads</div>
+                <div class="sub-metrics">
+                    <div class="sub-metric">
+                        <div class="sub-metric-value" id="crm-hot">0</div>
+                        <div class="sub-metric-label">🔥 Hot</div>
+                    </div>
+                    <div class="sub-metric">
+                        <div class="sub-metric-value" id="crm-warm">0</div>
+                        <div class="sub-metric-label">🌡️ Warm</div>
+                    </div>
+                    <div class="sub-metric">
+                        <div class="sub-metric-value" id="crm-cold">0</div>
+                        <div class="sub-metric-label">❄️ Cold</div>
+                    </div>
+                    <div class="sub-metric">
+                        <div class="sub-metric-value" id="crm-followup">0</div>
+                        <div class="sub-metric-label">📞 Follow-up</div>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <!-- Live Logs -->
@@ -915,6 +998,15 @@ Keep responses under 250 characters. Be professional and include relevant contac
                 document.getElementById('system-uptime').textContent = data.system.uptime_formatted;
                 document.getElementById('system-syncs').textContent = data.system.vault_syncs;
                 document.getElementById('system-errors').textContent = data.system.errors;
+
+                // CRM metrics
+                if (data.crm) {
+                    document.getElementById('crm-total').textContent = data.crm.total_leads;
+                    document.getElementById('crm-hot').textContent = data.crm.hot_leads;
+                    document.getElementById('crm-warm').textContent = data.crm.warm_leads;
+                    document.getElementById('crm-cold').textContent = data.crm.cold_leads;
+                    document.getElementById('crm-followup').textContent = data.crm.needs_followup;
+                }
 
             } catch (error) {
                 console.error('Failed to fetch analytics:', error);
