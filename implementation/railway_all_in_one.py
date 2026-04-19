@@ -75,6 +75,15 @@ except ImportError as e:
     ANALYTICS_AVAILABLE = False
     advanced_analytics = None
 
+# Email Integration
+try:
+    from email_integration import EmailIntegration
+    email_integration = EmailIntegration(lead_crm) if CRM_AVAILABLE else None
+    EMAIL_INTEGRATION_AVAILABLE = True
+except ImportError as e:
+    EMAIL_INTEGRATION_AVAILABLE = False
+    email_integration = None
+
 # Create logs directory (use /tmp for cloud platforms)
 logs_dir = Path("/tmp/logs")
 logs_dir.mkdir(parents=True, exist_ok=True)
@@ -368,6 +377,49 @@ class HealthHandler(BaseHTTPRequestHandler):
                 self.wfile.write(json.dumps(report).encode())
             else:
                 self.wfile.write(json.dumps({'error': 'Advanced analytics not available'}).encode())
+        elif self.path == '/api/email/stats':
+            # Get email campaign statistics
+            self.send_response(200)
+            self.send_header('Content-type', 'application/json')
+            self.send_header('Access-Control-Allow-Origin', '*')
+            self.end_headers()
+
+            if EMAIL_INTEGRATION_AVAILABLE and email_integration:
+                stats = email_integration.get_campaign_stats()
+                self.wfile.write(json.dumps(stats).encode())
+            else:
+                self.wfile.write(json.dumps({'error': 'Email integration not available'}).encode())
+        elif self.path.startswith('/api/leads/export/'):
+            # Export leads (CSV or JSON)
+            format_type = self.path.split('/')[-1]  # csv or json
+            self.send_response(200)
+
+            if format_type == 'csv':
+                self.send_header('Content-type', 'text/csv')
+                self.send_header('Content-Disposition', 'attachment; filename="leads_export.csv"')
+            else:
+                self.send_header('Content-type', 'application/json')
+                self.send_header('Content-Disposition', 'attachment; filename="leads_export.json"')
+
+            self.send_header('Access-Control-Allow-Origin', '*')
+            self.end_headers()
+
+            if EMAIL_INTEGRATION_AVAILABLE and email_integration:
+                import tempfile
+                with tempfile.NamedTemporaryFile(mode='r', delete=False, suffix=f'.{format_type}') as tmp:
+                    tmp_path = tmp.name
+
+                if format_type == 'csv':
+                    email_integration.export_leads_csv(tmp_path)
+                else:
+                    email_integration.export_leads_json(tmp_path)
+
+                with open(tmp_path, 'rb') as f:
+                    self.wfile.write(f.read())
+
+                os.unlink(tmp_path)
+            else:
+                self.wfile.write(b'Email integration not available')
         elif self.path.startswith('/webhook/whatsapp'):
             # WhatsApp webhook verification (GET request)
             self.handle_whatsapp_verification()
