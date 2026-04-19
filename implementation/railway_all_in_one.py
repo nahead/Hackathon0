@@ -48,6 +48,15 @@ except ImportError as e:
     CRM_AVAILABLE = False
     lead_crm = None
 
+# Automated Follow-up
+try:
+    from automated_followup import AutomatedFollowup
+    automated_followup = AutomatedFollowup(lead_crm) if CRM_AVAILABLE else None
+    FOLLOWUP_AVAILABLE = True
+except ImportError as e:
+    FOLLOWUP_AVAILABLE = False
+    automated_followup = None
+
 # Create logs directory (use /tmp for cloud platforms)
 logs_dir = Path("/tmp/logs")
 logs_dir.mkdir(parents=True, exist_ok=True)
@@ -81,6 +90,13 @@ class AnalyticsTracker:
                 'posts_published': 0,
                 'posts_pending': 0,
                 'last_post_time': None,
+                'last_check_time': None
+            },
+            'followup': {
+                'total_checks': 0,
+                'messages_sent': 0,
+                'leads_skipped': 0,
+                'errors': 0,
                 'last_check_time': None
             },
             'system': {
@@ -139,6 +155,14 @@ class AnalyticsTracker:
     def track_vault_sync(self):
         with self.lock:
             self.metrics['system']['vault_syncs'] += 1
+
+    def track_followup_check(self, checked=0, sent=0, skipped=0, errors=0):
+        with self.lock:
+            self.metrics['followup']['total_checks'] += 1
+            self.metrics['followup']['messages_sent'] += sent
+            self.metrics['followup']['leads_skipped'] += skipped
+            self.metrics['followup']['errors'] += errors
+            self.metrics['followup']['last_check_time'] = datetime.now()
 
     def track_error(self, error_msg):
         with self.lock:
@@ -948,6 +972,24 @@ Keep responses under 250 characters. Be professional and include relevant contac
                     </div>
                 </div>
             </div>
+
+            <!-- Automated Follow-up Metrics -->
+            <div class="metric-card">
+                <h3>📞 Auto Follow-up</h3>
+                <div class="metric-value" id="followup-sent">0</div>
+                <div class="metric-label">Messages Sent</div>
+                <div class="sub-metrics">
+                    <div class="sub-metric">
+                        <div class="sub-metric-value" id="followup-checks">0</div>
+                        <div class="sub-metric-label">Total Checks</div>
+                    </div>
+                    <div class="sub-metric">
+                        <div class="sub-metric-value" id="followup-skipped">0</div>
+                        <div class="sub-metric-label">Skipped</div>
+                    </div>
+                </div>
+                <div class="last-activity" id="followup-last">No activity yet</div>
+            </div>
         </div>
 
         <!-- Live Logs -->
@@ -1006,6 +1048,14 @@ Keep responses under 250 characters. Be professional and include relevant contac
                     document.getElementById('crm-warm').textContent = data.crm.warm_leads;
                     document.getElementById('crm-cold').textContent = data.crm.cold_leads;
                     document.getElementById('crm-followup').textContent = data.crm.needs_followup;
+                }
+
+                // Follow-up metrics
+                if (data.followup) {
+                    document.getElementById('followup-sent').textContent = data.followup.messages_sent;
+                    document.getElementById('followup-checks').textContent = data.followup.total_checks;
+                    document.getElementById('followup-skipped').textContent = data.followup.leads_skipped;
+                    document.getElementById('followup-last').textContent = 'Last check: ' + formatTime(data.followup.last_check_time);
                 }
 
             } catch (error) {
@@ -1919,6 +1969,34 @@ class RailwayOrchestrator:
         except Exception as e:
             logger.error(f"❌ Gmail watcher initialization failed: {e}")
 
+    def followup_service(self):
+        """Background automated follow-up service"""
+        logger.info("📞 Starting automated follow-up service (24-hour checks)...")
+
+        if not FOLLOWUP_AVAILABLE or not automated_followup:
+            logger.warning("⚠️ Follow-up system not available")
+            return
+
+        while True:
+            try:
+                # Check for leads needing follow-up (48 hours since last contact)
+                results = automated_followup.check_and_send_followups(hours_since_contact=48)
+
+                # Track metrics
+                analytics.track_followup_check(
+                    checked=results['checked'],
+                    sent=results['sent'],
+                    skipped=results['skipped'],
+                    errors=results['errors']
+                )
+
+                logger.info(f"📞 Follow-up check: {results['sent']} sent, {results['skipped']} skipped")
+                time.sleep(86400)  # 24 hours
+
+            except Exception as e:
+                logger.error(f"❌ Follow-up service error: {e}")
+                time.sleep(86400)
+
     def start_background_services(self):
         """Start all background services"""
         logger.info("🔧 Starting background services...")
@@ -1931,9 +2009,15 @@ class RailwayOrchestrator:
         gmail_thread = threading.Thread(target=self.gmail_watcher_service, daemon=True)
         gmail_thread.start()
 
-        # Start LinkedIn poster in background (checks every 60 seconds)
+        # Start LinkedIn poster in background (checks every 3 hours)
         linkedin_thread = threading.Thread(target=self.linkedin_poster_service, daemon=True)
         linkedin_thread.start()
+
+        # Start automated follow-up service in background (checks every 24 hours)
+        if FOLLOWUP_AVAILABLE and automated_followup:
+            followup_thread = threading.Thread(target=self.followup_service, daemon=True)
+            followup_thread.start()
+            logger.info("✅ Automated follow-up service enabled")
 
         logger.info("✅ Background services started")
 
