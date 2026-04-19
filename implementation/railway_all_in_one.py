@@ -256,24 +256,26 @@ class HealthHandler(BaseHTTPRequestHandler):
 
             if any(greeting in message_lower for greeting in casual_greetings) and len(message_content.strip()) < 20:
                 # Send complete business card for greetings
-                business_card = f"""Hi {contact_name}! 👋
+                business_card = f"""👋 Hi {contact_name}!
 
-I'm Nahead Jokhio's AI Assistant. Here's how you can connect:
+I'm *Nahead Jokhio* - AI Developer & Full-Stack Engineer
 
+🎯 *What I Do:*
+✅ AI Automation & Intelligent Systems
+✅ Custom Software Development
+✅ Cloud Architecture & 24/7 Deployments
+✅ API Integration & Workflow Automation
+
+🏆 *Recent Achievement:*
+Built a production AI Employee system that autonomously handles Email, WhatsApp, LinkedIn, Twitter & more - running 24/7 on cloud!
+
+📞 *Let's Connect:*
 📱 WhatsApp: +92 312 2955972
 📧 Email: naheadj@gmail.com
-🔗 LinkedIn: linkedin.com/in/nahead
-💼 Portfolio: my-personal-porfolio-navy.vercel.app
+🔗 LinkedIn: https://linkedin.com/in/nahead
+💼 Portfolio: https://my-personal-porfolio-navy.vercel.app
 
-🚀 Services:
-• AI Automation Solutions
-• Custom Software Development
-• Cloud Deployments & DevOps
-• Full-Stack Development
-
-Currently built a production AI Employee system running 24/7!
-
-How can I help you today?"""
+💡 Looking for AI automation or custom development? Let's discuss your project!"""
 
                 logger.info(f"✅ Sending business card to {contact_name}")
                 return business_card
