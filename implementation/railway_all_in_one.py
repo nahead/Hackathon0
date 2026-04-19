@@ -35,11 +35,9 @@ try:
     from conversation_history import ConversationHistory
     conversation_history = ConversationHistory("/tmp/whatsapp_conversations.json")
     HISTORY_AVAILABLE = True
-    logger.info("✅ Conversation history module loaded")
 except ImportError as e:
     HISTORY_AVAILABLE = False
     conversation_history = None
-    logger.warning(f"⚠️ Conversation history not available: {e}")
 
 # Create logs directory (use /tmp for cloud platforms)
 logs_dir = Path("/tmp/logs")
