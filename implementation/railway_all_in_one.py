@@ -58,7 +58,9 @@ class AnalyticsTracker:
                 'skipped_messages': 0,
                 'responses_sent': 0,
                 'unique_contacts': set(),
-                'last_message_time': None
+                'last_message_time': None,
+                'urgent_messages': 0,
+                'high_priority': 0
             },
             'email': {
                 'emails_checked': 0,
@@ -97,6 +99,14 @@ class AnalyticsTracker:
     def track_whatsapp_response(self):
         with self.lock:
             self.metrics['whatsapp']['responses_sent'] += 1
+
+    def track_urgent_message(self):
+        with self.lock:
+            self.metrics['whatsapp']['urgent_messages'] += 1
+
+    def track_high_priority(self):
+        with self.lock:
+            self.metrics['whatsapp']['high_priority'] += 1
 
     def track_email_check(self):
         with self.lock:
@@ -365,9 +375,52 @@ class HealthHandler(BaseHTTPRequestHandler):
         except Exception as e:
             logger.error(f"❌ Auto-response error: {e}")
 
+    def detect_sentiment(self, message_content):
+        """Detect message sentiment and priority level"""
+        message_lower = message_content.lower()
+
+        # Urgent keywords
+        urgent_keywords = ['urgent', 'asap', 'immediately', 'emergency', 'now', 'quick', 'fast',
+                          'فوری', 'ابھی', 'jaldi', 'turant', 'abhi']
+
+        # Negative sentiment keywords
+        negative_keywords = ['angry', 'disappointed', 'frustrated', 'upset', 'unhappy', 'bad',
+                           'terrible', 'worst', 'disappointed', 'ناراض', 'مایوس', 'naraz', 'mayoos']
+
+        # High-value keywords
+        high_value_keywords = ['enterprise', 'company', 'business', 'team', 'budget', 'investment',
+                              'کمپنی', 'کاروبار', 'company', 'business']
+
+        sentiment = {
+            'is_urgent': any(keyword in message_lower for keyword in urgent_keywords),
+            'is_negative': any(keyword in message_lower for keyword in negative_keywords),
+            'is_high_value': any(keyword in message_lower for keyword in high_value_keywords),
+            'priority': 'normal'
+        }
+
+        # Determine priority
+        if sentiment['is_urgent'] or sentiment['is_negative']:
+            sentiment['priority'] = 'high'
+        elif sentiment['is_high_value']:
+            sentiment['priority'] = 'medium'
+
+        return sentiment
+
     def generate_intelligent_response(self, message_content, contact_name, contact_number):
-        """Generate intelligent response using Gemini AI with conversation history"""
+        """Generate intelligent response using Gemini AI with conversation history and sentiment analysis"""
         try:
+            # Detect sentiment first
+            sentiment = self.detect_sentiment(message_content)
+
+            # Track sentiment in analytics
+            if sentiment['is_urgent']:
+                analytics.track_urgent_message()
+                logger.warning(f"🚨 URGENT message from {contact_name}: {message_content[:50]}...")
+
+            if sentiment['priority'] == 'high':
+                analytics.track_high_priority()
+                logger.warning(f"⚠️ HIGH PRIORITY message from {contact_name}")
+
             message_lower = message_content.lower().strip()
 
             # Check if it's a greeting - send complete business card
@@ -481,6 +534,13 @@ Analyze the message carefully:
 
 Keep responses under 250 characters. Be professional and include relevant contact info when needed.
 """
+
+            # Add sentiment context to prompt
+            if sentiment['priority'] == 'high':
+                if sentiment['is_urgent']:
+                    system_context += "\n\nIMPORTANT: This is an URGENT message. Respond with immediate availability and fast turnaround time. Show you understand the urgency."
+                if sentiment['is_negative']:
+                    system_context += "\n\nIMPORTANT: Customer seems frustrated or disappointed. Be extra empathetic, apologetic if needed, and solution-focused. Prioritize resolving their concern."
 
             # Add conversation history to prompt if available
             if context_summary and context_summary != "No previous conversation history.":
@@ -746,12 +806,12 @@ Keep responses under 250 characters. Be professional and include relevant contac
                         <div class="sub-metric-label">Responses</div>
                     </div>
                     <div class="sub-metric">
-                        <div class="sub-metric-value" id="whatsapp-contacts">0</div>
-                        <div class="sub-metric-label">Contacts</div>
+                        <div class="sub-metric-value" id="whatsapp-urgent">0</div>
+                        <div class="sub-metric-label">🚨 Urgent</div>
                     </div>
                     <div class="sub-metric">
-                        <div class="sub-metric-value" id="whatsapp-skipped">0</div>
-                        <div class="sub-metric-label">Skipped</div>
+                        <div class="sub-metric-value" id="whatsapp-priority">0</div>
+                        <div class="sub-metric-label">⚠️ Priority</div>
                     </div>
                 </div>
                 <div class="last-activity" id="whatsapp-last">No activity yet</div>
@@ -836,8 +896,8 @@ Keep responses under 250 characters. Be professional and include relevant contac
                 document.getElementById('whatsapp-total').textContent = data.whatsapp.total_messages;
                 document.getElementById('whatsapp-business').textContent = data.whatsapp.business_inquiries;
                 document.getElementById('whatsapp-responses').textContent = data.whatsapp.responses_sent;
-                document.getElementById('whatsapp-contacts').textContent = data.whatsapp.unique_contacts;
-                document.getElementById('whatsapp-skipped').textContent = data.whatsapp.skipped_messages;
+                document.getElementById('whatsapp-urgent').textContent = data.whatsapp.urgent_messages;
+                document.getElementById('whatsapp-priority').textContent = data.whatsapp.high_priority;
                 document.getElementById('whatsapp-last').textContent = 'Last: ' + formatTime(data.whatsapp.last_message_time);
 
                 // Email metrics
