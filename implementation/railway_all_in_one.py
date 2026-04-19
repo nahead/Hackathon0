@@ -57,6 +57,15 @@ except ImportError as e:
     FOLLOWUP_AVAILABLE = False
     automated_followup = None
 
+# Broadcast System
+try:
+    from broadcast_system import BroadcastSystem
+    broadcast_system = BroadcastSystem(lead_crm) if CRM_AVAILABLE else None
+    BROADCAST_AVAILABLE = True
+except ImportError as e:
+    BROADCAST_AVAILABLE = False
+    broadcast_system = None
+
 # Create logs directory (use /tmp for cloud platforms)
 logs_dir = Path("/tmp/logs")
 logs_dir.mkdir(parents=True, exist_ok=True)
@@ -98,6 +107,12 @@ class AnalyticsTracker:
                 'leads_skipped': 0,
                 'errors': 0,
                 'last_check_time': None
+            },
+            'broadcast': {
+                'total_campaigns': 0,
+                'completed_campaigns': 0,
+                'total_messages_sent': 0,
+                'total_failed': 0
             },
             'system': {
                 'start_time': datetime.now(),
@@ -205,6 +220,26 @@ class AnalyticsTracker:
                     'needs_followup': 0
                 }
 
+            # Add Broadcast statistics
+            if BROADCAST_AVAILABLE and broadcast_system:
+                try:
+                    metrics_copy['broadcast'] = broadcast_system.get_broadcast_stats()
+                except Exception as e:
+                    logger.error(f"Failed to get broadcast stats: {e}")
+                    metrics_copy['broadcast'] = {
+                        'total_broadcasts': 0,
+                        'completed_broadcasts': 0,
+                        'total_messages_sent': 0,
+                        'total_failed': 0
+                    }
+            else:
+                metrics_copy['broadcast'] = {
+                    'total_broadcasts': 0,
+                    'completed_broadcasts': 0,
+                    'total_messages_sent': 0,
+                    'total_failed': 0
+                }
+
             return metrics_copy
 
 # Global analytics tracker
@@ -288,6 +323,30 @@ class HealthHandler(BaseHTTPRequestHandler):
 
             emails = self.get_pending_emails()
             self.wfile.write(json.dumps(emails).encode())
+        elif self.path == '/api/broadcasts':
+            # List all broadcasts
+            self.send_response(200)
+            self.send_header('Content-type', 'application/json')
+            self.send_header('Access-Control-Allow-Origin', '*')
+            self.end_headers()
+
+            if BROADCAST_AVAILABLE and broadcast_system:
+                broadcasts = broadcast_system.list_broadcasts()
+                self.wfile.write(json.dumps(broadcasts).encode())
+            else:
+                self.wfile.write(json.dumps({'error': 'Broadcast system not available'}).encode())
+        elif self.path == '/api/broadcast/stats':
+            # Get broadcast statistics
+            self.send_response(200)
+            self.send_header('Content-type', 'application/json')
+            self.send_header('Access-Control-Allow-Origin', '*')
+            self.end_headers()
+
+            if BROADCAST_AVAILABLE and broadcast_system:
+                stats = broadcast_system.get_broadcast_stats()
+                self.wfile.write(json.dumps(stats).encode())
+            else:
+                self.wfile.write(json.dumps({'error': 'Broadcast system not available'}).encode())
         elif self.path.startswith('/webhook/whatsapp'):
             # WhatsApp webhook verification (GET request)
             self.handle_whatsapp_verification()
@@ -301,12 +360,77 @@ class HealthHandler(BaseHTTPRequestHandler):
             self.end_headers()
 
     def do_POST(self):
-        """Handle POST requests - WhatsApp webhook"""
+        """Handle POST requests - WhatsApp webhook and broadcast creation"""
         if self.path.startswith('/webhook/whatsapp'):
             self.handle_whatsapp_message()
+        elif self.path == '/api/broadcast/create':
+            self.handle_broadcast_create()
+        elif self.path.startswith('/api/broadcast/send/'):
+            self.handle_broadcast_send()
         else:
             self.send_response(404)
             self.end_headers()
+
+    def handle_broadcast_create(self):
+        """Handle broadcast creation request"""
+        try:
+            content_length = int(self.headers.get('Content-Length', 0))
+            post_data = self.rfile.read(content_length)
+            data = json.loads(post_data.decode('utf-8'))
+
+            if not BROADCAST_AVAILABLE or not broadcast_system:
+                self.send_response(503)
+                self.send_header('Content-type', 'application/json')
+                self.end_headers()
+                self.wfile.write(json.dumps({'error': 'Broadcast system not available'}).encode())
+                return
+
+            # Create broadcast
+            broadcast = broadcast_system.create_broadcast(
+                name=data.get('name', 'Untitled Broadcast'),
+                message=data.get('message', ''),
+                segment_criteria=data.get('segment_criteria', {})
+            )
+
+            self.send_response(200)
+            self.send_header('Content-type', 'application/json')
+            self.end_headers()
+            self.wfile.write(json.dumps(broadcast).encode())
+
+        except Exception as e:
+            logger.error(f"Broadcast creation error: {e}")
+            self.send_response(500)
+            self.send_header('Content-type', 'application/json')
+            self.end_headers()
+            self.wfile.write(json.dumps({'error': str(e)}).encode())
+
+    def handle_broadcast_send(self):
+        """Handle broadcast send request"""
+        try:
+            # Extract broadcast ID from path
+            broadcast_id = self.path.split('/')[-1]
+
+            if not BROADCAST_AVAILABLE or not broadcast_system:
+                self.send_response(503)
+                self.send_header('Content-type', 'application/json')
+                self.end_headers()
+                self.wfile.write(json.dumps({'error': 'Broadcast system not available'}).encode())
+                return
+
+            # Send broadcast
+            results = broadcast_system.send_broadcast(broadcast_id)
+
+            self.send_response(200)
+            self.send_header('Content-type', 'application/json')
+            self.end_headers()
+            self.wfile.write(json.dumps(results).encode())
+
+        except Exception as e:
+            logger.error(f"Broadcast send error: {e}")
+            self.send_response(500)
+            self.send_header('Content-type', 'application/json')
+            self.end_headers()
+            self.wfile.write(json.dumps({'error': str(e)}).encode())
 
     def handle_whatsapp_verification(self):
         """Handle WhatsApp webhook verification (GET)"""
@@ -990,6 +1114,23 @@ Keep responses under 250 characters. Be professional and include relevant contac
                 </div>
                 <div class="last-activity" id="followup-last">No activity yet</div>
             </div>
+
+            <!-- Broadcast Metrics -->
+            <div class="metric-card">
+                <h3>📢 Broadcasts</h3>
+                <div class="metric-value" id="broadcast-sent">0</div>
+                <div class="metric-label">Messages Sent</div>
+                <div class="sub-metrics">
+                    <div class="sub-metric">
+                        <div class="sub-metric-value" id="broadcast-campaigns">0</div>
+                        <div class="sub-metric-label">Campaigns</div>
+                    </div>
+                    <div class="sub-metric">
+                        <div class="sub-metric-value" id="broadcast-completed">0</div>
+                        <div class="sub-metric-label">Completed</div>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <!-- Live Logs -->
@@ -1056,6 +1197,13 @@ Keep responses under 250 characters. Be professional and include relevant contac
                     document.getElementById('followup-checks').textContent = data.followup.total_checks;
                     document.getElementById('followup-skipped').textContent = data.followup.leads_skipped;
                     document.getElementById('followup-last').textContent = 'Last check: ' + formatTime(data.followup.last_check_time);
+                }
+
+                // Broadcast metrics
+                if (data.broadcast) {
+                    document.getElementById('broadcast-sent').textContent = data.broadcast.total_messages_sent;
+                    document.getElementById('broadcast-campaigns').textContent = data.broadcast.total_broadcasts;
+                    document.getElementById('broadcast-completed').textContent = data.broadcast.completed_broadcasts;
                 }
 
             } catch (error) {
